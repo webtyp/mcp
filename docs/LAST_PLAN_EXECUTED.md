@@ -1,74 +1,110 @@
 ---
-PLAN: "fix: HarvestOps panics loudly on a duplicate tool name instead of registering it twice"
+PLAN: "chore: drop the Schema()/Pointers() stubs from list types"
 EXECUTOR: jules
 REVIEWER: none
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
 >
-> **Phase C (parallel, non-gating)** of
-> [`LAN_RUT_AUTH_MASTER_PLAN.md`](https://github.com/tinywasm/app/blob/main/docs/LAN_RUT_AUTH_MASTER_PLAN.md).
-> Doctrine: `CONSTRUCTION_HARNESS.md` in `tinywasm/app` docs — "the only
-> possible failure modes must be a compile error or a loud development
-> diagnostic — never a runtime mystery."
+> **Phase C** of
+> [`LIST_CONTRACT_MASTER_PLAN.md`](https://github.com/webtyp/docs/blob/main/LIST_CONTRACT_MASTER_PLAN.md).
+> Runs in parallel with the other phase-C repos.
+>
+> **Depends on phase A** (`webtyp.com/model`) and **phase B** (`webtyp.com/ormc`).
+> As the first line of work: `go get webtyp.com/model@latest`. Never add a
+> `replace`, never invent a version.
 
-# Plan — `webtyp.com/mcp`: duplicate tools fail at wiring time
+# Plan — `webtyp.com/mcp`: a list stops claiming it has columns
 
-## 0. Context
+## 0. Context (verified against the repo — do not re-diagnose)
 
-`HarvestOps` (`harvest.go`) appends every harvested operation into one flat
-`[]Tool` with **no name check**. Harvesting two modules that register the same
-op name (e.g. `authority.Module` and an app-local module both exposing
-`"me"`) silently produces two tools with one name; which answers is a
-runtime mystery. The mjosefa-cms plan that this wave supersedes had to carry
-a prose rule ("do not harvest `authMod` twice") plus a `grep` acceptance
-criterion to guard against it — the exact "thing you have to remember" the
-harness checklist calls a hole.
-
-This is a behavior change only — no new exported symbol, no signature
-changes. The design gate is answered in short form: the failure mode moves
-from *silent runtime ambiguity* to *loud startup panic*, which is the
-harness's prescribed order (compile error → loud development diagnostic →
-never silent failure). A panic is correct here because harvesting happens
-once, at composition-root wiring, during startup — never per request.
-
-## Stage 1 — the check
-
-**File:** `harvest.go`, `opRegistry.Operation`.
-
-Before appending, scan `r.tools` for the name; on a hit, panic with exactly:
+`model.FielderSlice` used to embed `model.Fielder`, so every list type had to
+answer "what are your columns?" — a question a sequence of rows cannot have.
+`ormc` therefore emitted, on every generated list:
 
 ```go
-panic("mcp: duplicate tool name \"" + name + "\" — each tool must be harvested exactly once (a module passed to HarvestOps twice, or two modules claiming the same operation name)")
+func (s *XList) Schema() []model.Field { return nil }
+func (s *XList) Pointers() []any       { return nil }
 ```
 
-The scan is linear over already-registered tools at wiring time — no
-performance concern, no map needed.
+Nothing ever called them: the json codec reaches rows through
+`Len()`/`At()`/`Append()` and type-asserts the **element**, never the list.
 
-## Stage 2 — consumer-shaped test
+The harm is that having them made the lie true for the compiler. A list
+satisfies `model.Fielder`, so `Accepts(&XList{})` compiles and
+`mcp/tool_schema.go` believes it, publishing the tool **advertising that it
+takes no arguments** — no error, no log.
 
-**File:** `harvest_test.go` (new, or extend the existing harvest tests if
-present — check first; do not duplicate a suite).
+Phase A narrowed `FielderSlice` to `Len`/`At`/`Append`; phase B stopped `ormc`
+emitting the two stubs. This repo now carries them as dead weight. Removing them
+is what closes the hole **here**: until it regenerates, its list types still
+satisfy `model.Fielder`.
 
-Two tiny `router.OperationModule` fakes both registering `"me"` →
-`HarvestOps(a, b)` panics with a message containing `duplicate tool name
-"me"`; one module registering two distinct names → both tools present, no
-panic; the same module instance passed twice → panics (that is the real-world
-footgun).
+**This is not a size optimization.** Measured: ~27 bytes per list type, 0,02 %
+of a real WASM client. Do not justify or scope this change by binary size.
 
-## Stage 3 — docs
+**Anti-footgun.** Do NOT remove the `EncodeFields`/`DecodeFields` no-ops from
+list types. `json.Encode` takes a `model.Encodable`, so deleting those breaks
+every call that serializes a list. That alternative was measured and rejected.
+`Len`, `At` and `Append` are the whole slice contract now and must survive
+untouched.
 
-`docs/SKILL.md` / `README.md`: one line under `HarvestOps` — duplicate names
-panic at wiring time. VERIFY against the implementation.
+## Quality rules
+
+```
+RULE: never hand-edit a generated *_orm.go — run the generator.
+RULE: every repeated string is a named constant; string literals forbidden in logic.
+RULE: this repo's behaviour must not change; only dead methods disappear.
+```
+
+## Stage 1 — regenerate with the new `ormc`
+
+**Files:** `model_orm.go` (21 list types).
+
+1. `go get webtyp.com/model@latest` so `FielderSlice` is the narrowed one.
+2. Run `ormc` at the repo root. It rewrites the generated file(s) in place; the
+   header is `DO NOT EDIT. generated by webtyp.com/ormc`.
+3. Confirm the diff contains **only** removals of the two stub methods —
+   21 `Schema()` and 21 `Pointers()` lines — and nothing else. If
+   any other line moved, the installed `ormc` predates phase B: stop and say so
+   in the PR instead of committing the drift.
+
+## Stage 2 — the hand-written list
+
+**File:** `content.go` — `contentBlockList` is written by hand, so `ormc` never touches it.
+
+Delete its two stub methods:
+
+```go
+func (s *contentBlockList) Schema() []model.Field { return nil }
+func (s *contentBlockList) Pointers() []any       { return nil }
+```
+
+Keep `Len`, `At`, `Append`, `IsNil`, `EncodeFields` and `DecodeFields` exactly
+as they are. If the type is declared to satisfy an interface via a
+`var _ model.X = (*contentBlockList)(nil)` line, leave that line alone — it must still
+compile, and that is the check.
 
 ## Acceptance criteria
 
-1. `go build ./...`, `go vet ./...`, `gotest ./...` green.
-2. `grep -rn "duplicate tool name" harvest.go` → exactly one hit (the panic).
-3. The test proves the panic message names the duplicated tool.
+1. `go build ./...`, `go vet ./...`, `go test ./...` green.
+2. `grep -rn "List) Schema() \[\]model.Field" --include='*.go' .` → empty.
+3. `grep -rn "List) Pointers()" --include='*.go' .` → empty.
+4. `grep -rnc "Append() model.Fielder" --include='*.go' .` → unchanged from
+   before the change: the traversal contract survived.
+5. `go.mod` requires the phase A tag of `webtyp.com/model`; no `replace`.
+6. `grep -rn "TODO\|FIXME\|Deprecated" --include='*.go' .` → only hits that
+   predate this change.
 
-| Stage | File | Action |
+## Out of scope
+
+- Changing `model.FielderSlice` itself — phase A, already shipped.
+- Changing what `ormc` emits — phase B, already shipped.
+- Removing the `EncodeFields`/`DecodeFields` no-ops — measured and rejected.
+- Any behaviour change in this repo. If a test fails, the cause is upstream:
+  report it, do not paper over it here.
+
+| Stage | Files | Action |
 |---|---|---|
-| 1 | `harvest.go` | duplicate-name panic in `opRegistry.Operation` |
-| 2 | `harvest_test.go` | consumer-shaped proof |
-| 3 | `README.md`/`docs/SKILL.md` | verify docs |
+| 1 | `model_orm.go` | regenerate with `ormc`; 21 stub pairs disappear |
+| 2 | `content.go` | delete `contentBlockList`'s two stub methods by hand |

@@ -20,8 +20,6 @@ type ContentBlock interface {
 // generated homogeneous, one struct per list).
 type contentBlockList []ContentBlock
 
-func (s *contentBlockList) Schema() []model.Field  { return nil }
-func (s *contentBlockList) Pointers() []any        { return nil }
 func (s *contentBlockList) Len() int               { return len(*s) }
 func (s *contentBlockList) At(i int) model.Fielder { return (*s)[i] }
 func (s *contentBlockList) Append() model.Fielder  { panic("mcp: contentBlockList is encode-only") }

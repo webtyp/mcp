@@ -37,8 +37,6 @@ func (m *rpcRequest) DecodeFields(r model.FieldReader) {
 
 type rpcRequestList []*rpcRequest
 
-func (s *rpcRequestList) Schema() []model.Field { return nil }
-func (s *rpcRequestList) Pointers() []any     { return nil }
 func (s *rpcRequestList) Len() int             { return len(*s) }
 func (s *rpcRequestList) At(i int) model.Fielder { return (*s)[i] }
 func (s *rpcRequestList) Append() model.Fielder  { v := &rpcRequest{}; *s = append(*s, v); return v }
@@ -81,8 +79,6 @@ func (m *rpcResponse) DecodeFields(r model.FieldReader) {
 
 type rpcResponseList []*rpcResponse
 
-func (s *rpcResponseList) Schema() []model.Field { return nil }
-func (s *rpcResponseList) Pointers() []any     { return nil }
 func (s *rpcResponseList) Len() int             { return len(*s) }
 func (s *rpcResponseList) At(i int) model.Fielder { return (*s)[i] }
 func (s *rpcResponseList) Append() model.Fielder  { v := &rpcResponse{}; *s = append(*s, v); return v }
@@ -122,8 +118,6 @@ func (m *jsonRPCError) DecodeFields(r model.FieldReader) {
 
 type jsonRPCErrorList []*jsonRPCError
 
-func (s *jsonRPCErrorList) Schema() []model.Field { return nil }
-func (s *jsonRPCErrorList) Pointers() []any     { return nil }
 func (s *jsonRPCErrorList) Len() int             { return len(*s) }
 func (s *jsonRPCErrorList) At(i int) model.Fielder { return (*s)[i] }
 func (s *jsonRPCErrorList) Append() model.Fielder  { v := &jsonRPCError{}; *s = append(*s, v); return v }
@@ -160,8 +154,6 @@ func (m *initializeParams) DecodeFields(r model.FieldReader) {
 
 type initializeParamsList []*initializeParams
 
-func (s *initializeParamsList) Schema() []model.Field { return nil }
-func (s *initializeParamsList) Pointers() []any     { return nil }
 func (s *initializeParamsList) Len() int             { return len(*s) }
 func (s *initializeParamsList) At(i int) model.Fielder { return (*s)[i] }
 func (s *initializeParamsList) Append() model.Fielder  { v := &initializeParams{}; *s = append(*s, v); return v }
@@ -198,8 +190,6 @@ func (m *implementationInfo) DecodeFields(r model.FieldReader) {
 
 type implementationInfoList []*implementationInfo
 
-func (s *implementationInfoList) Schema() []model.Field { return nil }
-func (s *implementationInfoList) Pointers() []any     { return nil }
 func (s *implementationInfoList) Len() int             { return len(*s) }
 func (s *implementationInfoList) At(i int) model.Fielder { return (*s)[i] }
 func (s *implementationInfoList) Append() model.Fielder  { v := &implementationInfo{}; *s = append(*s, v); return v }
@@ -239,8 +229,6 @@ func (m *initializeResult) DecodeFields(r model.FieldReader) {
 
 type initializeResultList []*initializeResult
 
-func (s *initializeResultList) Schema() []model.Field { return nil }
-func (s *initializeResultList) Pointers() []any     { return nil }
 func (s *initializeResultList) Len() int             { return len(*s) }
 func (s *initializeResultList) At(i int) model.Fielder { return (*s)[i] }
 func (s *initializeResultList) Append() model.Fielder  { v := &initializeResult{}; *s = append(*s, v); return v }
@@ -277,8 +265,6 @@ func (m *CallToolParams) DecodeFields(r model.FieldReader) {
 
 type CallToolParamsList []*CallToolParams
 
-func (s *CallToolParamsList) Schema() []model.Field { return nil }
-func (s *CallToolParamsList) Pointers() []any     { return nil }
 func (s *CallToolParamsList) Len() int             { return len(*s) }
 func (s *CallToolParamsList) At(i int) model.Fielder { return (*s)[i] }
 func (s *CallToolParamsList) Append() model.Fielder  { v := &CallToolParams{}; *s = append(*s, v); return v }
@@ -315,8 +301,6 @@ func (m *Result) DecodeFields(r model.FieldReader) {
 
 type ResultList []*Result
 
-func (s *ResultList) Schema() []model.Field { return nil }
-func (s *ResultList) Pointers() []any     { return nil }
 func (s *ResultList) Len() int             { return len(*s) }
 func (s *ResultList) At(i int) model.Fielder { return (*s)[i] }
 func (s *ResultList) Append() model.Fielder  { v := &Result{}; *s = append(*s, v); return v }
@@ -353,8 +337,6 @@ func (m *TextContent) DecodeFields(r model.FieldReader) {
 
 type TextContentList []*TextContent
 
-func (s *TextContentList) Schema() []model.Field { return nil }
-func (s *TextContentList) Pointers() []any     { return nil }
 func (s *TextContentList) Len() int             { return len(*s) }
 func (s *TextContentList) At(i int) model.Fielder { return (*s)[i] }
 func (s *TextContentList) Append() model.Fielder  { v := &TextContent{}; *s = append(*s, v); return v }
@@ -394,8 +376,6 @@ func (m *ImageContent) DecodeFields(r model.FieldReader) {
 
 type ImageContentList []*ImageContent
 
-func (s *ImageContentList) Schema() []model.Field { return nil }
-func (s *ImageContentList) Pointers() []any     { return nil }
 func (s *ImageContentList) Len() int             { return len(*s) }
 func (s *ImageContentList) At(i int) model.Fielder { return (*s)[i] }
 func (s *ImageContentList) Append() model.Fielder  { v := &ImageContent{}; *s = append(*s, v); return v }
@@ -435,8 +415,6 @@ func (m *toolEntry) DecodeFields(r model.FieldReader) {
 
 type toolEntryList []*toolEntry
 
-func (s *toolEntryList) Schema() []model.Field { return nil }
-func (s *toolEntryList) Pointers() []any     { return nil }
 func (s *toolEntryList) Len() int             { return len(*s) }
 func (s *toolEntryList) At(i int) model.Fielder { return (*s)[i] }
 func (s *toolEntryList) Append() model.Fielder  { v := &toolEntry{}; *s = append(*s, v); return v }
@@ -473,8 +451,6 @@ func (m *listToolsResult) DecodeFields(r model.FieldReader) {
 
 type listToolsResultList []*listToolsResult
 
-func (s *listToolsResultList) Schema() []model.Field { return nil }
-func (s *listToolsResultList) Pointers() []any     { return nil }
 func (s *listToolsResultList) Len() int             { return len(*s) }
 func (s *listToolsResultList) At(i int) model.Fielder { return (*s)[i] }
 func (s *listToolsResultList) Append() model.Fielder  { v := &listToolsResult{}; *s = append(*s, v); return v }
@@ -514,8 +490,6 @@ func (m *errorResponse) DecodeFields(r model.FieldReader) {
 
 type errorResponseList []*errorResponse
 
-func (s *errorResponseList) Schema() []model.Field { return nil }
-func (s *errorResponseList) Pointers() []any     { return nil }
 func (s *errorResponseList) Len() int             { return len(*s) }
 func (s *errorResponseList) At(i int) model.Fielder { return (*s)[i] }
 func (s *errorResponseList) Append() model.Fielder  { v := &errorResponse{}; *s = append(*s, v); return v }
@@ -549,8 +523,6 @@ func (m *Meta) DecodeFields(r model.FieldReader) {
 
 type MetaList []*Meta
 
-func (s *MetaList) Schema() []model.Field { return nil }
-func (s *MetaList) Pointers() []any     { return nil }
 func (s *MetaList) Len() int             { return len(*s) }
 func (s *MetaList) At(i int) model.Fielder { return (*s)[i] }
 func (s *MetaList) Append() model.Fielder  { v := &Meta{}; *s = append(*s, v); return v }
@@ -584,8 +556,6 @@ func (m *NotificationParams) DecodeFields(r model.FieldReader) {
 
 type NotificationParamsList []*NotificationParams
 
-func (s *NotificationParamsList) Schema() []model.Field { return nil }
-func (s *NotificationParamsList) Pointers() []any     { return nil }
 func (s *NotificationParamsList) Len() int             { return len(*s) }
 func (s *NotificationParamsList) At(i int) model.Fielder { return (*s)[i] }
 func (s *NotificationParamsList) Append() model.Fielder  { v := &NotificationParams{}; *s = append(*s, v); return v }
@@ -619,8 +589,6 @@ func (m *EmptyResult) DecodeFields(r model.FieldReader) {
 
 type EmptyResultList []*EmptyResult
 
-func (s *EmptyResultList) Schema() []model.Field { return nil }
-func (s *EmptyResultList) Pointers() []any     { return nil }
 func (s *EmptyResultList) Len() int             { return len(*s) }
 func (s *EmptyResultList) At(i int) model.Fielder { return (*s)[i] }
 func (s *EmptyResultList) Append() model.Fielder  { v := &EmptyResult{}; *s = append(*s, v); return v }
@@ -663,8 +631,6 @@ func (m *JSONRPCRequest) DecodeFields(r model.FieldReader) {
 
 type JSONRPCRequestList []*JSONRPCRequest
 
-func (s *JSONRPCRequestList) Schema() []model.Field { return nil }
-func (s *JSONRPCRequestList) Pointers() []any     { return nil }
 func (s *JSONRPCRequestList) Len() int             { return len(*s) }
 func (s *JSONRPCRequestList) At(i int) model.Fielder { return (*s)[i] }
 func (s *JSONRPCRequestList) Append() model.Fielder  { v := &JSONRPCRequest{}; *s = append(*s, v); return v }
@@ -704,8 +670,6 @@ func (m *JSONRPCNotification) DecodeFields(r model.FieldReader) {
 
 type JSONRPCNotificationList []*JSONRPCNotification
 
-func (s *JSONRPCNotificationList) Schema() []model.Field { return nil }
-func (s *JSONRPCNotificationList) Pointers() []any     { return nil }
 func (s *JSONRPCNotificationList) Len() int             { return len(*s) }
 func (s *JSONRPCNotificationList) At(i int) model.Fielder { return (*s)[i] }
 func (s *JSONRPCNotificationList) Append() model.Fielder  { v := &JSONRPCNotification{}; *s = append(*s, v); return v }
@@ -748,8 +712,6 @@ func (m *JSONRPCResponseStruct) DecodeFields(r model.FieldReader) {
 
 type JSONRPCResponseStructList []*JSONRPCResponseStruct
 
-func (s *JSONRPCResponseStructList) Schema() []model.Field { return nil }
-func (s *JSONRPCResponseStructList) Pointers() []any     { return nil }
 func (s *JSONRPCResponseStructList) Len() int             { return len(*s) }
 func (s *JSONRPCResponseStructList) At(i int) model.Fielder { return (*s)[i] }
 func (s *JSONRPCResponseStructList) Append() model.Fielder  { v := &JSONRPCResponseStruct{}; *s = append(*s, v); return v }
@@ -789,8 +751,6 @@ func (m *JSONRPCError) DecodeFields(r model.FieldReader) {
 
 type JSONRPCErrorList []*JSONRPCError
 
-func (s *JSONRPCErrorList) Schema() []model.Field { return nil }
-func (s *JSONRPCErrorList) Pointers() []any     { return nil }
 func (s *JSONRPCErrorList) Len() int             { return len(*s) }
 func (s *JSONRPCErrorList) At(i int) model.Fielder { return (*s)[i] }
 func (s *JSONRPCErrorList) Append() model.Fielder  { v := &JSONRPCError{}; *s = append(*s, v); return v }
@@ -830,8 +790,6 @@ func (m *JSONRPCErrorDetails) DecodeFields(r model.FieldReader) {
 
 type JSONRPCErrorDetailsList []*JSONRPCErrorDetails
 
-func (s *JSONRPCErrorDetailsList) Schema() []model.Field { return nil }
-func (s *JSONRPCErrorDetailsList) Pointers() []any     { return nil }
 func (s *JSONRPCErrorDetailsList) Len() int             { return len(*s) }
 func (s *JSONRPCErrorDetailsList) At(i int) model.Fielder { return (*s)[i] }
 func (s *JSONRPCErrorDetailsList) Append() model.Fielder  { v := &JSONRPCErrorDetails{}; *s = append(*s, v); return v }
