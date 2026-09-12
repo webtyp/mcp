@@ -37,6 +37,11 @@ type opRegistry struct {
 }
 
 func (r *opRegistry) Operation(name string, h router.HandlerFunc) router.Route {
+	for _, t := range r.tools {
+		if t.Name == name {
+			panic("mcp: duplicate tool name \"" + name + "\" — each tool must be harvested exactly once (a module passed to HarvestOps twice, or two modules claiming the same operation name)")
+		}
+	}
 	idx := len(r.tools)
 	r.tools = append(r.tools, Tool{Name: name, Execute: harvestExecute(name, h)})
 	return &opRoute{owner: r, idx: idx}

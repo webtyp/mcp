@@ -1,6 +1,7 @@
 package mcp_test
 
 import (
+	"strings"
 	"testing"
 
 	"webtyp.com/mcp"
@@ -36,6 +37,75 @@ func (fakeModule) MountOperations(r router.OperationRegistry) {
 }
 
 var _ router.OperationModule = fakeModule{}
+
+// fakeMeModuleA and fakeMeModuleB mimic two independent domain modules that happen to both
+// register the "me" operation — the real-world collision (e.g. authority.Module vs an app-local
+// module both exposing "me").
+type fakeMeModuleA struct{}
+
+func (fakeMeModuleA) ModelName() string { return "fake_a" }
+func (fakeMeModuleA) MountOperations(r router.OperationRegistry) {
+	r.Operation("me", func(ctx router.Context) {}).Public()
+}
+
+var _ router.OperationModule = fakeMeModuleA{}
+
+type fakeMeModuleB struct{}
+
+func (fakeMeModuleB) ModelName() string { return "fake_b" }
+func (fakeMeModuleB) MountOperations(r router.OperationRegistry) {
+	r.Operation("me", func(ctx router.Context) {}).Public()
+}
+
+var _ router.OperationModule = fakeMeModuleB{}
+
+// fakeTwoOpsModule registers two distinct operation names — must harvest cleanly with no panic.
+type fakeTwoOpsModule struct{}
+
+func (fakeTwoOpsModule) ModelName() string { return "fake_two" }
+func (fakeTwoOpsModule) MountOperations(r router.OperationRegistry) {
+	r.Operation("op_a", func(ctx router.Context) {}).Public()
+	r.Operation("op_b", func(ctx router.Context) {}).Public()
+}
+
+var _ router.OperationModule = fakeTwoOpsModule{}
+
+func TestHarvestOps_DuplicateNameAcrossModulesPanics(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic on duplicate tool name, got none")
+		}
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, `duplicate tool name "me"`) {
+			t.Fatalf("panic message %v does not name the duplicated tool", r)
+		}
+	}()
+	mcp.HarvestOps(fakeMeModuleA{}, fakeMeModuleB{})
+}
+
+func TestHarvestOps_DistinctNamesNoPanic(t *testing.T) {
+	provider := mcp.HarvestOps(fakeTwoOpsModule{})
+	tools := provider.Tools()
+	if len(tools) != 2 {
+		t.Fatalf("expected 2 harvested tools, got %d", len(tools))
+	}
+}
+
+func TestHarvestOps_SameModuleInstanceTwicePanics(t *testing.T) {
+	fm := fakeModule{}
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic when the same module instance is harvested twice, got none")
+		}
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, `duplicate tool name "do_thing"`) {
+			t.Fatalf("panic message %v does not name the duplicated tool", r)
+		}
+	}()
+	mcp.HarvestOps(fm, fm)
+}
 
 func TestHarvestOps_ModuleReachesMCP(t *testing.T) {
 	provider := mcp.HarvestOps(fakeModule{})

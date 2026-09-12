@@ -107,6 +107,7 @@ go install webtyp.com/orm/cmd/ormc@latest
 
 | File | Role |
 |------|------|
+| `harvest.go` | `HarvestOps(modules...)` — builds a `ToolProvider` from `router.OperationModule`s; panics at wiring time on a duplicate tool name |
 | `server.go` | `Server`, `NewServer`, handlers (init/ping/list/call) |
 | `request_handler.go` | `HandleMessage` dispatch, JSON extraction, context keys |
 | `mcp_auth.go` | `Authorize` type + `AllowAll` helper |

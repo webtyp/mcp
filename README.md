@@ -164,6 +164,7 @@ response := srv.HandleMessage(&ctx, message)
 
 | Symbol | Description |
 |--------|-------------|
+| `HarvestOps(modules...)` | Build a `ToolProvider` from `router.OperationModule`s — panics at wiring time on a duplicate tool name |
 | `NewServer(config, providers)` | Create MCP server — returns `(*Server, error)` |
 | `NewClient(baseURL, authToken)` | Create MCP client |
 | `NewCaller(client)` | Adapt `*Client` to `router.Caller` (recommended for views) |
