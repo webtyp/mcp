@@ -19,9 +19,8 @@ func TestHandleToolCall_PublicTool_NoAuth_Passes(t *testing.T) {
 	srv, _ := mcp.NewServer(mcp.Config{Name: "test", Version: "1.0.0", Authorize: mcp.AllowAll}, nil)
 	srv.AddTool(mcp.Tool{
 		Name: "public-tool",
-		// Un tool público NO declara recurso: un recurso que nadie comprueba parece
-		// protección y no la da. AddTool lo rechaza al arrancar.
-		Action: model.Read,
+		// Un tool público NO declara recurso ni acción: un recurso o acción que nadie
+		// comprueba parece protección y no la da. AddTool lo rechaza al arrancar.
 		Access: model.AccessPublic,
 		Execute: func(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
 			return mcp.Text("ok"), nil

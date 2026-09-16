@@ -65,26 +65,37 @@ func negotiateVersion(clientVersion string) string {
 }
 
 func (s *Server) AddTool(tool Tool) error {
-	if tool.Name == "" || tool.Action == 0 || tool.Execute == nil {
-		return fmt.Err("mcp", "invalid tool: Name, Action and Execute are required")
+	if tool.Name == "" || tool.Execute == nil {
+		return fmt.Err("mcp", "invalid tool: Name and Execute are required")
 	}
 
-	// The access declaration and the resource must agree, and disagreeing is fatal at
-	// startup — never a runtime surprise.
+	// Access decide qué más hace falta. El cero es AccessGuarded, así que una
+	// Tool que no declara nada cae en la rama más estricta.
 	switch tool.Access {
 	case model.AccessGuarded:
-		// A guarded tool with no resource used to authorize against "", which simply denied
-		// every call: the tool looked protected and was in fact unreachable, silently.
+		// Una tool guarded sin recurso autorizaba contra "", lo que denegaba
+		// toda llamada: parecía protegida y era inalcanzable, en silencio.
 		if tool.Resource == "" {
 			return fmt.Err("mcp", "tool", tool.Name, "is guarded but declares no Resource — it would deny every call")
 		}
+		// Y sin acción no hay permiso con el que comparar: mismo silencio.
+		if tool.Action == 0 {
+			return fmt.Err("mcp", "tool", tool.Name, "is guarded but declares no Action — no permission could ever match it")
+		}
 	default:
-		// A resource on a tool nobody checks reads as protection and gives none.
+		// AccessAuthenticated / AccessPublic: nadie comprueba recurso ni
+		// acción, así que declararlos es una protección aparente que no
+		// existe.
 		if tool.Resource != "" {
 			return fmt.Err("mcp", "tool", tool.Name, "declares Resource", string(tool.Resource),
 				"but its Access does not check it — remove one or the other")
 		}
+		if tool.Action != 0 {
+			return fmt.Err("mcp", "tool", tool.Name, "declares Action", tool.Action.String(),
+				"but its Access does not check it — use Requires(resource, action) to guard it, or drop the Action")
+		}
 	}
+
 	s.mu.Lock()
 	s.tools[tool.Name] = tool
 	s.mu.Unlock()

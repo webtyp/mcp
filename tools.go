@@ -19,7 +19,10 @@ type Tool struct {
 	Description string
 	Args        model.Fielder  // model of tool arguments (ormc-generated); nil = no args
 	Resource    model.Resource // required with AccessGuarded; must be empty otherwise
-	Action      model.Action   // required — model.Create/Read/Update/Delete
+	// Action es obligatoria con AccessGuarded (es la mitad del permiso que se
+	// comprueba) y debe ser cero con AccessAuthenticated/AccessPublic, donde
+	// no hay recurso sobre el que actuar. Ver AddTool.
+	Action      model.Action
 	Access      model.Access   // zero = model.AccessGuarded: identity AND permission
 	Execute     func(ctx *context.Context, req Request) (*Result, error)
 }

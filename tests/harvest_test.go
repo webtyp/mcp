@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"webtyp.com/context"
 	"webtyp.com/mcp"
 	"webtyp.com/model"
 	"webtyp.com/router"
@@ -130,5 +131,51 @@ func TestHarvestOps_ModuleReachesMCP(t *testing.T) {
 	}
 	if res.Content != `{"value":"echo:x"}` {
 		t.Errorf("unexpected content: %s", res.Content)
+	}
+}
+
+type fakeAuthAndGuardedModule struct{}
+
+func (fakeAuthAndGuardedModule) ModelName() string { return "fake_auth_guarded" }
+func (fakeAuthAndGuardedModule) MountOperations(r router.OperationRegistry) {
+	r.Operation("me", func(ctx router.Context) {
+		_ = ctx.Encode(&fakeArgs{Value: "user:" + ctx.UserID()})
+	}).Authenticated()
+
+	r.Operation("read_thing", func(ctx router.Context) {
+		_ = ctx.Encode(&fakeArgs{Value: "thing_read"})
+	}).Requires("thing", model.Read)
+}
+
+var _ router.OperationModule = fakeAuthAndGuardedModule{}
+
+func TestHarvestOps_AuthenticatedAndGuardedOps(t *testing.T) {
+	provider := mcp.HarvestOps(fakeAuthAndGuardedModule{})
+	srv, err := mcp.NewServer(mcp.Config{
+		Name:      "test-server",
+		Version:   "1.0.0",
+		Authorize: mcp.AllowAll,
+	}, []mcp.ToolProvider{provider})
+	if err != nil {
+		t.Fatalf("NewServer failed to accept harvested tools: %v", err)
+	}
+
+	ctx := context.Background()
+	ctx.Set(mcp.CtxKeyUserID, "user123")
+
+	resMe, err := callTool(srv, ctx, "me")
+	if err != nil {
+		t.Fatalf("callTool('me') failed: %v", err)
+	}
+	if !strings.Contains(resMe, "user:user123") {
+		t.Errorf("expected me result to contain 'user:user123', got: %s", resMe)
+	}
+
+	resRead, err := callTool(srv, ctx, "read_thing")
+	if err != nil {
+		t.Fatalf("callTool('read_thing') failed: %v", err)
+	}
+	if !strings.Contains(resRead, "thing_read") {
+		t.Errorf("expected read_thing result to contain 'thing_read', got: %s", resRead)
 	}
 }

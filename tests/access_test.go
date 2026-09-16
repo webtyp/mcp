@@ -28,10 +28,14 @@ func callTool(srv *mcp.Server, ctx *context.Context, name string) (string, error
 }
 
 func okTool(name string, access model.Access, resource model.Resource) mcp.Tool {
+	var action model.Action
+	if access == model.AccessGuarded {
+		action = model.Read
+	}
 	return mcp.Tool{
 		Name:     name,
 		Resource: resource,
-		Action:   model.Read,
+		Action:   action,
 		Access:   access,
 		Execute: func(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
 			return mcp.Text("ok"), nil
@@ -128,10 +132,67 @@ func TestAddToolRejectsContradictoryAccess(t *testing.T) {
 		}
 	})
 
+	t.Run("guarded con recurso y Action == 0", func(t *testing.T) {
+		tool := mcp.Tool{
+			Name:     "guarded_no_action",
+			Resource: "secrets",
+			Action:   0,
+			Access:   model.AccessGuarded,
+			Execute:  func(ctx *context.Context, req mcp.Request) (*mcp.Result, error) { return mcp.Text("ok"), nil },
+		}
+		if err := srv.AddTool(tool); err == nil {
+			t.Error("se aceptó un tool guarded con Action == 0: no coincidiría con ningún permiso")
+		}
+	})
+
+	t.Run("authenticated con recurso", func(t *testing.T) {
+		tool := mcp.Tool{
+			Name:     "auth_resource",
+			Resource: "secrets",
+			Action:   0,
+			Access:   model.AccessAuthenticated,
+			Execute:  func(ctx *context.Context, req mcp.Request) (*mcp.Result, error) { return mcp.Text("ok"), nil },
+		}
+		if err := srv.AddTool(tool); err == nil {
+			t.Error("se aceptó un tool authenticated con Resource != ''")
+		}
+	})
+
+	t.Run("authenticated con action", func(t *testing.T) {
+		tool := mcp.Tool{
+			Name:     "auth_action",
+			Resource: "",
+			Action:   model.Read,
+			Access:   model.AccessAuthenticated,
+			Execute:  func(ctx *context.Context, req mcp.Request) (*mcp.Result, error) { return mcp.Text("ok"), nil },
+		}
+		if err := srv.AddTool(tool); err == nil {
+			t.Error("se aceptó un tool authenticated con Action != 0")
+		}
+	})
+
 	t.Run("público con recurso", func(t *testing.T) {
 		// Un recurso que nadie comprueba parece protección y no la da.
 		if err := srv.AddTool(okTool("fake", model.AccessPublic, "secrets")); err == nil {
 			t.Error("se aceptó un tool público que declara recurso: parece protegido y no lo está")
+		}
+	})
+
+	t.Run("authenticated limpia aceptada", func(t *testing.T) {
+		if err := srv.AddTool(okTool("auth_clean", model.AccessAuthenticated, "")); err != nil {
+			t.Errorf("se rechazó un tool authenticated limpio: %v", err)
+		}
+	})
+
+	t.Run("público limpia aceptada", func(t *testing.T) {
+		if err := srv.AddTool(okTool("public_clean", model.AccessPublic, "")); err != nil {
+			t.Errorf("se rechazó un tool público limpio: %v", err)
+		}
+	})
+
+	t.Run("Tool vacia rechazada closed by default", func(t *testing.T) {
+		if err := srv.AddTool(mcp.Tool{}); err == nil {
+			t.Error("se aceptó una Tool vacía")
 		}
 	})
 }
