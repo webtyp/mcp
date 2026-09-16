@@ -2,8 +2,9 @@
 PLAN: "fix(server): AddTool valida por Access, no con un Action!=0 ciego — una tool solo-autenticada es legítima"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 18244365744164825945
+PR: https://github.com/webtyp/mcp/pull/29
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
