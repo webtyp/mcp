@@ -71,18 +71,50 @@ func (fakeTwoOpsModule) MountOperations(r router.OperationRegistry) {
 
 var _ router.OperationModule = fakeTwoOpsModule{}
 
-func TestHarvestOps_DuplicateNameAcrossModulesPanics(t *testing.T) {
+// fakeUnnamedModule mimics a module that forgot (or was written wrong) to
+// return a real ModelName() — the case HarvestOps must refuse, not harvest
+// under an empty prefix.
+type fakeUnnamedModule struct{}
+
+func (fakeUnnamedModule) ModelName() string { return "" }
+func (fakeUnnamedModule) MountOperations(r router.OperationRegistry) {
+	r.Operation("op", func(ctx router.Context) {}).Public()
+}
+
+var _ router.OperationModule = fakeUnnamedModule{}
+
+func TestHarvestOps_EmptyModelNamePanics(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == nil {
-			t.Fatal("expected panic on duplicate tool name, got none")
+			t.Fatal("expected panic when a module's ModelName() is empty, got none")
 		}
 		msg, ok := r.(string)
-		if !ok || !strings.Contains(msg, `duplicate tool name "me"`) {
-			t.Fatalf("panic message %v does not name the duplicated tool", r)
+		if !ok || !strings.Contains(msg, "empty ModelName()") {
+			t.Fatalf("panic message %v does not explain the empty ModelName()", r)
 		}
 	}()
-	mcp.HarvestOps(fakeMeModuleA{}, fakeMeModuleB{})
+	mcp.HarvestOps(fakeUnnamedModule{})
+}
+
+// TestHarvestOps_SameBareNameAcrossModulesNoLongerCollides is the acid test
+// of module-qualified names: fakeMeModuleA and fakeMeModuleB both register
+// the bare name "me" — before qualification this panicked ("duplicate tool
+// name"); now the two are "fake_a.me" and "fake_b.me", genuinely distinct,
+// and both must be reachable.
+func TestHarvestOps_SameBareNameAcrossModulesNoLongerCollides(t *testing.T) {
+	provider := mcp.HarvestOps(fakeMeModuleA{}, fakeMeModuleB{})
+	tools := provider.Tools()
+	if len(tools) != 2 {
+		t.Fatalf("expected 2 harvested tools, got %d: %+v", len(tools), tools)
+	}
+	names := map[string]bool{}
+	for _, tool := range tools {
+		names[tool.Name] = true
+	}
+	if !names["fake_a.me"] || !names["fake_b.me"] {
+		t.Fatalf("expected qualified names %q and %q, got %v", "fake_a.me", "fake_b.me", names)
+	}
 }
 
 func TestHarvestOps_DistinctNamesNoPanic(t *testing.T) {
@@ -93,6 +125,10 @@ func TestHarvestOps_DistinctNamesNoPanic(t *testing.T) {
 	}
 }
 
+// TestHarvestOps_SameModuleInstanceTwicePanics: the SAME module (same
+// ModelName()) harvested twice produces the SAME qualified name twice —
+// qualification narrows the panic to genuine duplicates, it does not remove
+// it.
 func TestHarvestOps_SameModuleInstanceTwicePanics(t *testing.T) {
 	fm := fakeModule{}
 	defer func() {
@@ -101,8 +137,8 @@ func TestHarvestOps_SameModuleInstanceTwicePanics(t *testing.T) {
 			t.Fatal("expected panic when the same module instance is harvested twice, got none")
 		}
 		msg, ok := r.(string)
-		if !ok || !strings.Contains(msg, `duplicate tool name "do_thing"`) {
-			t.Fatalf("panic message %v does not name the duplicated tool", r)
+		if !ok || !strings.Contains(msg, `duplicate tool name "fake.do_thing"`) {
+			t.Fatalf("panic message %v does not name the duplicated qualified tool", r)
 		}
 	}()
 	mcp.HarvestOps(fm, fm)
@@ -115,7 +151,7 @@ func TestHarvestOps_ModuleReachesMCP(t *testing.T) {
 		t.Fatalf("expected 1 harvested tool, got %d", len(tools))
 	}
 	tool := tools[0]
-	if tool.Name != "do_thing" || tool.Resource != "fake_resource" || tool.Action != model.Read {
+	if tool.Name != "fake.do_thing" || tool.Resource != "fake_resource" || tool.Action != model.Read {
 		t.Fatalf("harvested tool metadata mismatch: %+v", tool)
 	}
 	if tool.Args == nil {
@@ -163,17 +199,17 @@ func TestHarvestOps_AuthenticatedAndGuardedOps(t *testing.T) {
 	ctx := context.Background()
 	ctx.Set(mcp.CtxKeyUserID, "user123")
 
-	resMe, err := callTool(srv, ctx, "me")
+	resMe, err := callTool(srv, ctx, "fake_auth_guarded.me")
 	if err != nil {
-		t.Fatalf("callTool('me') failed: %v", err)
+		t.Fatalf("callTool('fake_auth_guarded.me') failed: %v", err)
 	}
 	if !strings.Contains(resMe, "user:user123") {
 		t.Errorf("expected me result to contain 'user:user123', got: %s", resMe)
 	}
 
-	resRead, err := callTool(srv, ctx, "read_thing")
+	resRead, err := callTool(srv, ctx, "fake_auth_guarded.read_thing")
 	if err != nil {
-		t.Fatalf("callTool('read_thing') failed: %v", err)
+		t.Fatalf("callTool('fake_auth_guarded.read_thing') failed: %v", err)
 	}
 	if !strings.Contains(resRead, "thing_read") {
 		t.Errorf("expected read_thing result to contain 'thing_read', got: %s", resRead)

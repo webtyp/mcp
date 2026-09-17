@@ -16,9 +16,22 @@ import (
 // root passes both:
 //
 //	providers := []mcp.ToolProvider{mcp.HarvestOps(catalogModule, userModule), rawProvider}
+//
+// Every harvested Tool.Name is qualified by its module's ModelName() as
+// "<ModelName>.<name>" — an operation name has no owner on its own, and two
+// modules that independently pick the same bare name (e.g. both calling
+// something "get_day_bounds") is not a defect in either: it is exactly the
+// collision qualification exists to make unrepresentable. A module whose
+// ModelName() is "" cannot mount operations at all — HarvestOps panics
+// rather than harvest an unqualified (and therefore collision-prone) name.
 func HarvestOps(modules ...router.OperationModule) ToolProvider {
 	reg := &opRegistry{}
 	for _, m := range modules {
+		name := m.ModelName()
+		if name == "" {
+			panic("mcp: HarvestOps: a module returned an empty ModelName() — every operation must be qualified by its owning module")
+		}
+		reg.module = name
 		m.MountOperations(reg)
 	}
 	return staticProvider(reg.tools)
@@ -30,20 +43,25 @@ func (s staticProvider) Tools() []Tool { return []Tool(s) }
 
 // opRegistry implements router.OperationRegistry — a ONE-method surface. It does NOT implement
 // (nor pretend to be) router.Router: an op-only transport must never carry Get/Post/… it can
-// neither honour nor need. There is nothing to panic on, because there is nothing to leave
-// unimplemented.
+// neither honour nor need. There is nothing to panic on beyond a genuine duplicate, because
+// there is nothing to leave unimplemented.
 type opRegistry struct {
 	tools []Tool
+	// module is the ModelName() of whichever module HarvestOps is currently
+	// mounting — set once per module, before that module's MountOperations
+	// runs, and is what qualifies every name Operation registers.
+	module string
 }
 
 func (r *opRegistry) Operation(name string, h router.HandlerFunc) router.Route {
+	qualified := r.module + "." + name
 	for _, t := range r.tools {
-		if t.Name == name {
-			panic("mcp: duplicate tool name \"" + name + "\" — each tool must be harvested exactly once (a module passed to HarvestOps twice, or two modules claiming the same operation name)")
+		if t.Name == qualified {
+			panic("mcp: duplicate tool name \"" + qualified + "\" — each tool must be harvested exactly once (a module passed to HarvestOps twice, or the same module registering the same operation name twice)")
 		}
 	}
 	idx := len(r.tools)
-	r.tools = append(r.tools, Tool{Name: name, Execute: harvestExecute(name, h)})
+	r.tools = append(r.tools, Tool{Name: qualified, Execute: harvestExecute(qualified, h)})
 	return &opRoute{owner: r, idx: idx}
 }
 
