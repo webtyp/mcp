@@ -20,7 +20,7 @@ func NewCaller(c *Client) router.Caller {
 }
 
 func (c *mcpCaller) Call(op string, args model.Encodable, into model.Decodable, done func(err error)) {
-	var argsJSON string
+	argsJSON := "{}"
 	if args != nil {
 		if err := json.Encode(args, &argsJSON); err != nil {
 			if done != nil {
@@ -73,7 +73,7 @@ func (c *mcpCaller) Call(op string, args model.Encodable, into model.Decodable, 
 }
 
 func (c *mcpCaller) Dispatch(op string, args model.Encodable) {
-	var argsJSON string
+	argsJSON := "{}"
 	if args != nil {
 		json.Encode(args, &argsJSON)
 	}
