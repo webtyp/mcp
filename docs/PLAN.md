@@ -2,8 +2,9 @@
 PLAN: "fix: mcp.Caller encodes nil args as JSON null, breaking every op whose handler decodes an (optionally empty) args struct"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 9324426338688325668
+PR: https://github.com/webtyp/mcp/pull/30
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
