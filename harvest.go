@@ -132,6 +132,17 @@ var _ router.Context = (*opContext)(nil)
 // harvestExecute wraps a router.HandlerFunc as a Tool.Execute. name is unused today (kept for a
 // future error-message improvement) — silence the unused-param lint with _ if your toolchain
 // complains, do not delete the parameter (keeps the call site self-documenting).
+//
+// The success and failure branches build Content differently, and that split is deliberate, not
+// an oversight: on success, oc.body is whatever the handler wrote via ctx.Encode — already
+// serialized JSON — so it is safe to embed verbatim (Result.EncodeFields does exactly that via
+// w.Raw). On failure, oc.body is PLAIN TEXT: every domain module in this ecosystem's own
+// convention is ctx.WriteStatus(4xx/5xx) followed by ctx.Write([]byte(err.Error())), never a
+// JSON-encoded value. Embedding plain text verbatim after "content": produces a syntactically
+// broken JSON-RPC response the moment the message contains a space (any real error message) —
+// confirmed by a real client-server round trip, not a caller misusing IsError. Text(...) is the
+// same helper handleToolCall's own recovered-error branch already uses for an identical reason;
+// this mirrors it instead of introducing a second way to wrap an error string.
 func harvestExecute(_ string, h router.HandlerFunc) func(ctx *context.Context, req Request) (*Result, error) {
 	return func(ctx *context.Context, req Request) (*Result, error) {
 		var u string
@@ -140,6 +151,9 @@ func harvestExecute(_ string, h router.HandlerFunc) func(ctx *context.Context, r
 		}
 		oc := &opContext{userID: u, body: []byte(req.Params.Arguments)}
 		h(oc)
-		return &Result{IsError: oc.status >= 400, Content: string(oc.body)}, nil
+		if oc.status >= 400 {
+			return &Result{IsError: true, Content: Text(string(oc.body)).Content}, nil
+		}
+		return &Result{Content: string(oc.body)}, nil
 	}
 }
