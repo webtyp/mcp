@@ -77,4 +77,11 @@ func TestHarvestOps_PlainTextErrorSurvivesRealWireRoundTrip(t *testing.T) {
 	if !strings.Contains(err.Error(), "patient not found") {
 		t.Fatalf("expected the real error message to survive the wire round trip, got: %v", err)
 	}
+	// The message is what a person reads in a UI — it must be the sentence the
+	// handler wrote, not the content-block envelope that carried it. A caller
+	// that pastes Content in raw shows `[{"type":"text","text":"patient not
+	// found"}]` to the user, which is the transport leaking through the seam.
+	if strings.Contains(err.Error(), `{"type"`) {
+		t.Errorf("the caller must unwrap the content block, not paste it raw: %v", err)
+	}
 }

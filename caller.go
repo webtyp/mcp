@@ -53,7 +53,7 @@ func (c *mcpCaller) Call(op string, args model.Encodable, into model.Decodable, 
 
 		if res.IsError {
 			if done != nil {
-				done(fmt.Err("mcp: tool execution failed: " + res.Content))
+				done(fmt.Err("mcp: tool execution failed: " + errorText(res)))
 			}
 			return
 		}
@@ -84,4 +84,17 @@ func (c *mcpCaller) Dispatch(op string, args model.Encodable) {
 	}
 
 	c.client.Dispatch(context.Background(), string(MethodToolsCall), params)
+}
+
+// errorText is the message a failed call shows a person. A Result carries its
+// failure as content BLOCKS ([{"type":"text","text":"..."}]) — the protocol's
+// shape, produced by Text(...) — so pasting Content in raw leaks that envelope
+// into the UI. GetText unwraps it; anything it cannot parse (a tool that built
+// its own Content by hand) falls back to the raw string, because a message the
+// caller cannot pretty-print is still better than no message at all.
+func errorText(res *Result) string {
+	if text, err := GetText(res); err == nil && text != "" {
+		return text
+	}
+	return res.Content
 }
