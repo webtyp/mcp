@@ -13,7 +13,7 @@ require (
 	webtyp.com/unixid v0.2.28
 )
 
-require webtyp.com/time v0.5.5
+require webtyp.com/time v0.5.7
 
 // Local dev: Encode/Decode (standard, padded base64) were just added and
 // aren't in the v0.0.3 tag yet.
