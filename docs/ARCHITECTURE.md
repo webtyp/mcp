@@ -170,3 +170,18 @@ inside a library.
 vocabulary and never declares it. Actions are a closed CRUD set; `Request.Action` stays a
 `byte` only because it is handed to the `Validate(action byte)` of the ormc-generated
 models. That is the boundary, and the refactor does not cross it.
+
+### Read-only tools are announced as such
+
+An AI agent calling these tools must know which ones change data, so it can ask the person
+before running them (`webtyp/agent` does). MCP has a standard field for that in `tools/list`:
+the tool annotation `readOnlyHint`. This server sets it only when a tool's `Action` is exactly
+`model.Read`:
+
+```json
+{"name":"list_business_hours","inputSchema":{...},"annotations":{"readOnlyHint":true}}
+```
+
+Every other tool is listed without annotations, which MCP reads as "may modify". That includes
+public and authenticated tools, which carry no `Action`: closed by default, so a client asks
+before running a tool nobody declared harmless.

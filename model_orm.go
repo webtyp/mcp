@@ -391,13 +391,14 @@ type toolEntry struct {
 	Name string
 	Description string
 	InputSchema string
+	Annotations string
 }
 
 func (m *toolEntry) ModelName() string { return "tool_entry" }
 
 func (m *toolEntry) Schema() []model.Field { return toolEntryModel.Fields }
 
-func (m *toolEntry) Pointers() []any { return []any{&m.Name, &m.Description, &m.InputSchema} }
+func (m *toolEntry) Pointers() []any { return []any{&m.Name, &m.Description, &m.InputSchema, &m.Annotations} }
 
 func (m *toolEntry) IsNil() bool { return m == nil }
 
@@ -405,12 +406,14 @@ func (m *toolEntry) EncodeFields(w model.FieldWriter) {
 	w.String("name", m.Name)
 	if m.Description != "" { w.String("description", m.Description) }
 	w.Raw("inputSchema", m.InputSchema)
+	if len(m.Annotations) != 0 { w.Raw("annotations", m.Annotations) }
 }
 
 func (m *toolEntry) DecodeFields(r model.FieldReader) {
 	if v, ok := r.String("name"); ok { m.Name = v }
 	if v, ok := r.String("description"); ok { m.Description = v }
 	if v, ok := r.Raw("inputSchema"); ok { m.InputSchema = v }
+	if v, ok := r.Raw("annotations"); ok { m.Annotations = v }
 }
 
 type toolEntryList []*toolEntry

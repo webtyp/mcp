@@ -61,3 +61,17 @@ func Image(data []byte, mimeType string) *Result {
 type ToolProvider interface {
 	Tools() []Tool
 }
+
+// readOnlyAnnotations is the MCP tool annotation that tells a client the tool changes nothing.
+// A client (for example webtyp/agent) may run such a tool without asking the user first.
+const readOnlyAnnotations = `{"readOnlyHint":true}`
+
+// annotationsOf declares a tool read-only only when its Action is exactly model.Read. Every
+// other tool, including public and authenticated ones that carry no Action, is announced
+// without the hint, which MCP defines as "may modify": closed by default.
+func annotationsOf(t Tool) string {
+	if t.Action == model.Read {
+		return readOnlyAnnotations
+	}
+	return ""
+}

@@ -101,6 +101,7 @@ var toolEntryModel = model.Definition{
 		{Name: "name", Type: model.Text()},
 		{Name: "description", Type: model.Text(), OmitEmpty: true},
 		{Name: "inputSchema", Type: model.Raw()},
+		{Name: "annotations", Type: model.Raw(), OmitEmpty: true},
 	},
 }
 

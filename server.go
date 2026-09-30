@@ -149,6 +149,7 @@ func (s *Server) handleListTools(ctx *context.Context, id RequestId) (*listTools
 			Name:        t.Name,
 			Description: t.Description,
 			InputSchema: schema,
+			Annotations: annotationsOf(t),
 		}
 		json.Encode(&entry, &entryJSON)
 		toolsJSON += entryJSON
