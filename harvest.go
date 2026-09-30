@@ -93,6 +93,12 @@ func (rt *opRoute) Accepts(args model.Fielder) router.Route {
 	return rt
 }
 
+// Describe records what the route does; a transport that lists routes publishes it.
+func (rt *opRoute) Describe(text string) router.Route {
+	rt.owner.tools[rt.idx].Description = text
+	return rt
+}
+
 var _ router.Route = (*opRoute)(nil)
 
 // opContext adapts one mcp.Request into router.Context so a router.HandlerFunc (registered via
