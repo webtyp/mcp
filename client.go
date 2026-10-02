@@ -1,11 +1,11 @@
 package mcp
 
 import (
-	"webtyp.com/model"
 	"webtyp.com/context"
 	"webtyp.com/fetch"
 	"webtyp.com/fmt"
 	"webtyp.com/json"
+	"webtyp.com/model"
 )
 
 const (
@@ -15,8 +15,34 @@ const (
 
 type Client struct {
 	endpoint  string
-	authToken string // when non-empty, sent as "Authorization: Bearer <token>"
+	authToken string  // when non-empty, sent as "Authorization: Bearer <token>"
+	local     *Server // non-nil: requests go to this server in this process, not over HTTP
+	userID    string  // with local: the identity the server's tools see (CtxKeyUserID)
 }
+
+// NewLocalClient talks to s in this process: the same requests and answers as NewClient, without
+// HTTP. Tools see userID as the caller, the identity an HTTP request takes from its session. Use
+// it where the tools live next to their caller: a Web Worker that holds the application's modules,
+// a demo without a server, a test.
+func NewLocalClient(s *Server, userID string) *Client {
+	return &Client{local: s, userID: userID}
+}
+
+// handleLocal answers body with the local server, as the HTTP transport would.
+func (c *Client) handleLocal(body []byte) ([]byte, error) {
+	ctx := context.Background()
+	ctx.Set(CtxKeyUserID, c.userID)
+	out, known, err := encodeResponse(c.local.HandleMessage(ctx, body))
+	if !known {
+		return nil, fmt.Err(errUnknownResponse)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return readEnvelope([]byte(out))
+}
+
+const errUnknownResponse = "mcp: unknown response type"
 
 // NewClient targets baseURL + "/mcp". authToken is sent as a Bearer token on
 // every request; pass "" for open/unauthenticated daemons.
@@ -45,6 +71,13 @@ func (c *Client) Call(ctx *context.Context, method string, params any, callback 
 		}
 		return
 	}
+	if c.local != nil {
+		result, err := c.handleLocal(body)
+		if callback != nil {
+			callback(result, err)
+		}
+		return
+	}
 	c.newPost(body).Send(func(resp *fetch.Response, err error) {
 		if err != nil {
 			if callback != nil {
@@ -55,27 +88,32 @@ func (c *Client) Call(ctx *context.Context, method string, params any, callback 
 		if callback == nil {
 			return
 		}
-
-		var envelope rpcResponse
-		if err := json.Decode(resp.Body(), &envelope); err != nil {
-			callback(nil, err)
-			return
-		}
-		if len(envelope.Error) != 0 {
-			callback(nil, fmt.Err("mcp: "+string(envelope.Error)))
-			return
-		}
-		if len(envelope.Result) == 0 {
-			callback(nil, nil)
-			return
-		}
-		callback([]byte(envelope.Result), nil)
+		callback(readEnvelope(resp.Body()))
 	})
+}
+
+// readEnvelope returns the result of a JSON-RPC response, nil when it has none, or its error.
+func readEnvelope(body []byte) ([]byte, error) {
+	var envelope rpcResponse
+	if err := json.Decode(body, &envelope); err != nil {
+		return nil, err
+	}
+	if len(envelope.Error) != 0 {
+		return nil, fmt.Err("mcp: " + string(envelope.Error))
+	}
+	if len(envelope.Result) == 0 {
+		return nil, nil
+	}
+	return []byte(envelope.Result), nil
 }
 
 func (c *Client) Dispatch(ctx *context.Context, method string, params any) {
 	body := c.buildBody(method, params)
 	if body == nil {
+		return
+	}
+	if c.local != nil {
+		_, _ = c.handleLocal(body)
 		return
 	}
 	c.newPost(body).Send(func(*fetch.Response, error) {})

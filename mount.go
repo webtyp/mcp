@@ -33,14 +33,8 @@ func (s *Server) MountAPI(r router.Router) {
 		reqCtx.Set(CtxKeyUserID, ctx.UserID())
 		resp := s.HandleMessage(reqCtx, ctx.Body())
 		ctx.SetHeader(headerContentType, mimeJSON)
-		var out string
-		var err error
-		switch m := resp.(type) {
-		case *JSONRPCResponseStruct:
-			err = json.Encode(m, &out)
-		case *JSONRPCError:
-			err = json.Encode(m, &out)
-		default:
+		out, known, err := encodeResponse(resp)
+		if !known {
 			ctx.WriteStatus(500)
 			ctx.Write([]byte(`{"error":"mcp: unknown response type"}`))
 			return
@@ -52,4 +46,16 @@ func (s *Server) MountAPI(r router.Router) {
 		}
 		ctx.Write([]byte(out))
 	}).Public()
+}
+
+// encodeResponse writes what HandleMessage returned as the JSON the transport sends. known is
+// false for a message that is neither a response nor an error.
+func encodeResponse(resp JSONRPCMessage) (out string, known bool, err error) {
+	switch m := resp.(type) {
+	case *JSONRPCResponseStruct:
+		return out, true, json.Encode(m, &out)
+	case *JSONRPCError:
+		return out, true, json.Encode(m, &out)
+	}
+	return "", false, nil
 }
