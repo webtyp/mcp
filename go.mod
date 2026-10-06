@@ -1,11 +1,11 @@
 module webtyp.com/mcp
 
-go 1.25.2
+go 1.26.8
 
 require (
 	webtyp.com/base64 v0.0.6
 	webtyp.com/context v0.0.23
-	webtyp.com/fetch v0.1.28
+	webtyp.com/fetch v0.1.29
 	webtyp.com/fmt v1.0.0
 	webtyp.com/json v0.5.27
 	webtyp.com/model v0.2.2
@@ -14,6 +14,8 @@ require (
 )
 
 require webtyp.com/time v0.5.7
+
+require webtyp.com/filepath v0.1.0 // indirect
 
 // Local dev: Encode/Decode (standard, padded base64) were just added and
 // aren't in the v0.0.3 tag yet.
