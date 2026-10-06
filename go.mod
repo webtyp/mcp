@@ -7,7 +7,7 @@ require (
 	webtyp.com/context v0.0.23
 	webtyp.com/fetch v0.1.29
 	webtyp.com/fmt v1.0.0
-	webtyp.com/json v0.5.27
+	webtyp.com/json v0.5.29
 	webtyp.com/model v0.2.2
 	webtyp.com/router v0.3.2
 	webtyp.com/unixid v0.2.28
@@ -15,7 +15,10 @@ require (
 
 require webtyp.com/time v0.5.7
 
-require webtyp.com/filepath v0.1.0 // indirect
+require (
+	webtyp.com/escape v0.1.0 // indirect
+	webtyp.com/filepath v0.1.0 // indirect
+)
 
 // Local dev: Encode/Decode (standard, padded base64) were just added and
 // aren't in the v0.0.3 tag yet.
