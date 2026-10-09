@@ -162,9 +162,11 @@ response := srv.HandleMessage(&ctx, message)
 
 ## API Reference
 
+MCP is the agents' surface; browsers call operations through `webtyp.com/rpc`; list in the app's `config/mcp.go` exactly what an agent may call.
+
 | Symbol | Description |
 |--------|-------------|
-| `HarvestOps(modules...)` | Build a `ToolProvider` from `router.OperationModule`s — panics at wiring time on a duplicate tool name |
+| `HarvestOps(expose, modules...)` | Build a `ToolProvider` with only the exposed operations |
 | `NewServer(config, providers)` | Create MCP server — returns `(*Server, error)` |
 | `NewClient(baseURL, authToken)` | Create MCP client |
 | `NewCaller(client)` | Adapt `*Client` to `router.Caller` (recommended for views) |

@@ -3,8 +3,9 @@ PLAN: "feat!: HarvestOps exposes only the operations the app names — closed by
 TAG: v0.3.0
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 17827328770497671939
+PR: https://github.com/webtyp/mcp/pull/31
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
@@ -40,7 +41,7 @@ path). Consumers update when they bump.
 
 ### 2. Novice-name test
 `mcp.HarvestOps(config.AgentTools(), booking, patients)` — "harvest from these modules the tools
-the app lists for agents". `mcp.Tool(booking.ModelName, booking.OpListReservationsByStaff)` —
+the app lists for agents". `mcp.ToolNameOf(booking.ModelName, booking.OpListReservationsByStaff)` —
 "the tool named booking.list_reservations_by_staff". `mcp.ToolName` — a qualified tool name.
 
 ### 3. Complexity ledger
@@ -66,9 +67,9 @@ The implicit "every operation is a tool" behaviour, and the two `panic` calls of
 // ToolName is a qualified tool name: "<ModelName>.<operation>".
 type ToolName string
 
-// Tool builds the qualified name of one operation, from the module's constants:
-// mcp.Tool(booking.ModelName, booking.OpListReservationsByStaff).
-func Tool(module, op string) ToolName
+// ToolNameOf builds the qualified name of one operation, from the module's constants:
+// mcp.ToolNameOf(booking.ModelName, booking.OpListReservationsByStaff).
+func ToolNameOf(module, op string) ToolName
 
 // HarvestOps runs each module's MountOperations and returns a ToolProvider with ONLY the
 // operations named in expose. An empty expose exposes nothing (closed by default).
@@ -115,3 +116,6 @@ With a test module registering `a` (read) and `b` (update):
 **Known consumers (not this plan's job):** `webtyp/view` tests, `webtyp/auth`, the veltylabs
 modules' docs/tests and `veltylabs/mjosefa-cms` call `HarvestOps(modules...)`; each updates when it
 bumps (mjosefa-cms in its integration plan, with `config/mcp.go`).
+
+## Executor notes
+- `mcp.Tool` couldn't be used as a function name because `mcp.Tool` is already a struct type. I used `mcp.ToolNameOf` instead.

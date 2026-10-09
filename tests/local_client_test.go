@@ -11,8 +11,12 @@ import (
 // A local client is the HTTP client without the network: the same requests reach the same
 // server and come back the same way, so a router.Caller over it decodes ops exactly as over HTTP.
 func TestLocalClient_SameAnswersAsHTTP(t *testing.T) {
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", "do_thing")}, fakeModule{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
 	srv, err := mcp.NewServer(mcp.Config{Name: "test-server", Version: "1.0.0", Authorize: mcp.AllowAll},
-		[]mcp.ToolProvider{mcp.HarvestOps(fakeModule{})})
+		[]mcp.ToolProvider{provider})
 	if err != nil {
 		t.Fatalf("mcp.NewServer: %v", err)
 	}
