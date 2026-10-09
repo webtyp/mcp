@@ -3,6 +3,8 @@ PLAN: "feat!: HarvestOps exposes only the operations the app names — closed by
 TAG: v0.3.0
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 17827328770497671939
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
