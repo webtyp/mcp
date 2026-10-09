@@ -10,7 +10,7 @@ require (
 	webtyp.com/json v0.5.29
 	webtyp.com/model v0.2.2
 	webtyp.com/router v0.3.2
-	webtyp.com/unixid v0.2.28
+	webtyp.com/unixid v0.3.0
 )
 
 require webtyp.com/time v0.5.7
