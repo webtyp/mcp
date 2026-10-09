@@ -44,7 +44,10 @@ var _ router.OperationModule = plainTextErrorModule{}
 // `[{"type":"text","text":"..."}]` Content and never exercises
 // harvestExecute's own construction — this is what closes that gap.
 func TestHarvestOps_PlainTextErrorSurvivesRealWireRoundTrip(t *testing.T) {
-	provider := mcp.HarvestOps(plainTextErrorModule{})
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("plaintext", "fail")}, plainTextErrorModule{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
 	srv, err := mcp.NewServer(mcp.Config{Name: "test", Version: "1.0.0", Authorize: mcp.AllowAll}, []mcp.ToolProvider{provider})
 	if err != nil {
 		t.Fatalf("NewServer: %v", err)

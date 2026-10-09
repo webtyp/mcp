@@ -83,18 +83,14 @@ func (fakeUnnamedModule) MountOperations(r router.OperationRegistry) {
 
 var _ router.OperationModule = fakeUnnamedModule{}
 
-func TestHarvestOps_EmptyModelNamePanics(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic when a module's ModelName() is empty, got none")
-		}
-		msg, ok := r.(string)
-		if !ok || !strings.Contains(msg, "empty ModelName()") {
-			t.Fatalf("panic message %v does not explain the empty ModelName()", r)
-		}
-	}()
-	mcp.HarvestOps(fakeUnnamedModule{})
+func TestHarvestOps_EmptyModelNameError(t *testing.T) {
+	_, err := mcp.HarvestOps(nil, fakeUnnamedModule{})
+	if err == nil {
+		t.Fatal("expected error when a module's ModelName() is empty, got nil")
+	}
+	if !strings.Contains(err.Error(), "empty ModelName()") {
+		t.Fatalf("error message %v does not explain the empty ModelName()", err)
+	}
 }
 
 // TestHarvestOps_SameBareNameAcrossModulesNoLongerCollides is the acid test
@@ -103,7 +99,10 @@ func TestHarvestOps_EmptyModelNamePanics(t *testing.T) {
 // name"); now the two are "fake_a.me" and "fake_b.me", genuinely distinct,
 // and both must be reachable.
 func TestHarvestOps_SameBareNameAcrossModulesNoLongerCollides(t *testing.T) {
-	provider := mcp.HarvestOps(fakeMeModuleA{}, fakeMeModuleB{})
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_a", "me"), mcp.ToolNameOf("fake_b", "me")}, fakeMeModuleA{}, fakeMeModuleB{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
 	tools := provider.Tools()
 	if len(tools) != 2 {
 		t.Fatalf("expected 2 harvested tools, got %d: %+v", len(tools), tools)
@@ -118,34 +117,36 @@ func TestHarvestOps_SameBareNameAcrossModulesNoLongerCollides(t *testing.T) {
 }
 
 func TestHarvestOps_DistinctNamesNoPanic(t *testing.T) {
-	provider := mcp.HarvestOps(fakeTwoOpsModule{})
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_two", "op_a"), mcp.ToolNameOf("fake_two", "op_b")}, fakeTwoOpsModule{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
 	tools := provider.Tools()
 	if len(tools) != 2 {
 		t.Fatalf("expected 2 harvested tools, got %d", len(tools))
 	}
 }
 
-// TestHarvestOps_SameModuleInstanceTwicePanics: the SAME module (same
+// TestHarvestOps_SameModuleInstanceTwiceError: the SAME module (same
 // ModelName()) harvested twice produces the SAME qualified name twice —
 // qualification narrows the panic to genuine duplicates, it does not remove
 // it.
-func TestHarvestOps_SameModuleInstanceTwicePanics(t *testing.T) {
+func TestHarvestOps_SameModuleInstanceTwiceError(t *testing.T) {
 	fm := fakeModule{}
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic when the same module instance is harvested twice, got none")
-		}
-		msg, ok := r.(string)
-		if !ok || !strings.Contains(msg, `duplicate tool name "fake.do_thing"`) {
-			t.Fatalf("panic message %v does not name the duplicated qualified tool", r)
-		}
-	}()
-	mcp.HarvestOps(fm, fm)
+	_, err := mcp.HarvestOps(nil, fm, fm)
+	if err == nil {
+		t.Fatal("expected error when the same module instance is harvested twice, got nil")
+	}
+	if !strings.Contains(err.Error(), `duplicate tool name fake.do_thing`) {
+		t.Fatalf("error message %v does not name the duplicated qualified tool", err)
+	}
 }
 
 func TestHarvestOps_ModuleReachesMCP(t *testing.T) {
-	provider := mcp.HarvestOps(fakeModule{})
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", "do_thing")}, fakeModule{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
 	tools := provider.Tools()
 	if len(tools) != 1 {
 		t.Fatalf("expected 1 harvested tool, got %d", len(tools))
@@ -186,7 +187,10 @@ func (fakeAuthAndGuardedModule) MountOperations(r router.OperationRegistry) {
 var _ router.OperationModule = fakeAuthAndGuardedModule{}
 
 func TestHarvestOps_AuthenticatedAndGuardedOps(t *testing.T) {
-	provider := mcp.HarvestOps(fakeAuthAndGuardedModule{})
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_auth_guarded", "me"), mcp.ToolNameOf("fake_auth_guarded", "read_thing")}, fakeAuthAndGuardedModule{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
 	srv, err := mcp.NewServer(mcp.Config{
 		Name:      "test-server",
 		Version:   "1.0.0",
@@ -213,5 +217,36 @@ func TestHarvestOps_AuthenticatedAndGuardedOps(t *testing.T) {
 	}
 	if !strings.Contains(resRead, "thing_read") {
 		t.Errorf("expected read_thing result to contain 'thing_read', got: %s", resRead)
+	}
+}
+
+func TestHarvestOps_ExposeNil(t *testing.T) {
+	provider, err := mcp.HarvestOps(nil, fakeModule{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
+	tools := provider.Tools()
+	if len(tools) != 0 {
+		t.Fatalf("expected 0 harvested tools, got %d", len(tools))
+	}
+}
+
+func TestHarvestOps_ExposeUnknown(t *testing.T) {
+	_, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", "unknown")}, fakeModule{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "is not registered by any module") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestHarvestOps_ExposeTwice(t *testing.T) {
+	_, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", "do_thing"), mcp.ToolNameOf("fake", "do_thing")}, fakeModule{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "listed twice in expose") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

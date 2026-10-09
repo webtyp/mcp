@@ -22,8 +22,12 @@ func (describedModule) MountOperations(r router.OperationRegistry) {
 // An AI agent chooses tools by what tools/list says they do: the operation's Describe text
 // is the tool's description.
 func TestHarvestOps_DescribeBecomesToolDescription(t *testing.T) {
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("business_calendar", "list_business_hours")}, describedModule{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
 	srv, err := mcp.NewServer(mcp.Config{Name: "test", Version: "1.0.0", Authorize: mcp.AllowAll},
-		[]mcp.ToolProvider{mcp.HarvestOps(describedModule{})})
+		[]mcp.ToolProvider{provider})
 	if err != nil {
 		t.Fatal(err)
 	}

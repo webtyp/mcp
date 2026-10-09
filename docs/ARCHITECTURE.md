@@ -185,3 +185,5 @@ the tool annotation `readOnlyHint`. This server sets it only when a tool's `Acti
 Every other tool is listed without annotations, which MCP reads as "may modify". That includes
 public and authenticated tools, which carry no `Action`: closed by default, so a client asks
 before running a tool nobody declared harmless.
+
+MCP is the agents' surface; browsers call operations through `webtyp.com/rpc`; list in the app's `config/mcp.go` exactly what an agent may call.

@@ -8,34 +8,70 @@ import (
 	"webtyp.com/router"
 )
 
-// HarvestOps builds a ToolProvider from one or more router.OperationModule implementations. It
-// runs each module's MountOperations against an internal router.OperationRegistry — the
-// transport-neutral surface a domain module registers against without importing mcp — and
-// converts every harvested operation into a Tool. This is the ONLY supported way for a domain
-// module to reach the MCP transport; NewServer keeps accepting []ToolProvider for MCP-native
-// providers (mcp's own tools, or a raw ToolProvider a repo still hand-writes). A composition
-// root passes both:
-//
-//	providers := []mcp.ToolProvider{mcp.HarvestOps(catalogModule, userModule), rawProvider}
-//
-// Every harvested Tool.Name is qualified by its module's ModelName() as
-// "<ModelName>.<name>" — an operation name has no owner on its own, and two
-// modules that independently pick the same bare name (e.g. both calling
-// something "get_day_bounds") is not a defect in either: it is exactly the
-// collision qualification exists to make unrepresentable. A module whose
-// ModelName() is "" cannot mount operations at all — HarvestOps panics
-// rather than harvest an unqualified (and therefore collision-prone) name.
-func HarvestOps(modules ...router.OperationModule) ToolProvider {
+// ToolName is a qualified tool name: "<ModelName>.<operation>".
+type ToolName string
+
+// ToolNameOf builds the qualified name of one operation, from the module's constants:
+// mcp.ToolNameOf(booking.ModelName, booking.OpListReservationsByStaff).
+func ToolNameOf(module, op string) ToolName {
+	return ToolName(module + "." + op)
+}
+
+type harvestError string
+
+func (e harvestError) Error() string { return string(e) }
+
+const errEmptyModelName = harvestError("mcp: module with empty ModelName()")
+
+// HarvestOps runs each module's MountOperations and returns a ToolProvider with ONLY the
+// operations named in expose. An empty expose exposes nothing (closed by default).
+// Errors (nothing is returned): a module with an empty ModelName(), the same qualified name
+// registered twice, a name repeated in expose, or a name in expose that no module registered
+// (a typo must fail at startup, not silently hide a tool).
+func HarvestOps(expose []ToolName, modules ...router.OperationModule) (ToolProvider, error) {
 	reg := &opRegistry{}
 	for _, m := range modules {
 		name := m.ModelName()
 		if name == "" {
-			panic("mcp: HarvestOps: a module returned an empty ModelName() — every operation must be qualified by its owning module")
+			return nil, errEmptyModelName
 		}
 		reg.module = name
 		m.MountOperations(reg)
 	}
-	return staticProvider(reg.tools)
+
+	if reg.err != nil {
+		return nil, reg.err
+	}
+
+	if len(expose) == 0 {
+		return staticProvider(nil), nil
+	}
+
+	var finalTools []Tool
+	seen := make([]ToolName, 0, len(expose))
+
+	for _, exp := range expose {
+		for _, s := range seen {
+			if s == exp {
+				return nil, harvestError("mcp: tool " + string(exp) + " listed twice in expose")
+			}
+		}
+		seen = append(seen, exp)
+
+		found := false
+		for _, t := range reg.tools {
+			if t.Name == string(exp) {
+				finalTools = append(finalTools, t)
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, harvestError("mcp: exposed tool " + string(exp) + " is not registered by any module")
+		}
+	}
+
+	return staticProvider(finalTools), nil
 }
 
 type staticProvider []Tool
@@ -52,13 +88,17 @@ type opRegistry struct {
 	// mounting — set once per module, before that module's MountOperations
 	// runs, and is what qualifies every name Operation registers.
 	module string
+	err    error
 }
 
 func (r *opRegistry) Operation(name string, h router.HandlerFunc) router.Route {
 	qualified := r.module + "." + name
 	for _, t := range r.tools {
 		if t.Name == qualified {
-			panic("mcp: duplicate tool name \"" + qualified + "\" — each tool must be harvested exactly once (a module passed to HarvestOps twice, or the same module registering the same operation name twice)")
+			r.err = harvestError("mcp: duplicate tool name " + qualified)
+			idx := len(r.tools)
+			r.tools = append(r.tools, Tool{Name: qualified})
+			return &opRoute{owner: r, idx: idx}
 		}
 	}
 	idx := len(r.tools)

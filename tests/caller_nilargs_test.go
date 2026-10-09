@@ -43,7 +43,10 @@ import (
 // "{}" (a valid empty JSON object), never as the empty Go string "" — see
 // docs/PLAN.md.
 func TestCaller_Call_NilArgsAgainstOpThatDecodes(t *testing.T) {
-	provider := mcp.HarvestOps(fakeModule{})
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", "do_thing")}, fakeModule{})
+	if err != nil {
+		t.Fatalf("HarvestOps: %v", err)
+	}
 	srv, err := mcp.NewServer(mcp.Config{
 		Name:      "test-server",
 		Version:   "1.0.0",
