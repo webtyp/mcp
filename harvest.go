@@ -161,28 +161,28 @@ type opContext struct {
 	status    int
 }
 
-func (c *opContext) Method() string                          { return "POST" }
-func (c *opContext) Path() string                             { return "" }
-func (c *opContext) Body() []byte                             { return c.body }
-func (c *opContext) GetHeader(string) string                  { return "" }
-func (c *opContext) SetHeader(string, string)                 {}
-func (c *opContext) WriteStatus(code int)                     { c.status = code }
-func (c *opContext) Write(b []byte) (int, error)              { c.body = append([]byte{}, b...); return len(b), nil }
-func (c *opContext) SetValue(string, string)                  {}
-func (c *opContext) Value(string) string                      { return "" }
-func (c *opContext) Param(string) string                      { return "" }
-func (c *opContext) SetCookie(router.Cookie)                  {}
-func (c *opContext) Cookie(string) (router.Cookie, bool)      { return router.Cookie{}, false }
-func (c *opContext) SetUserID(id string)                      { c.userID = id }
-func (c *opContext) UserID() string                           { return c.userID }
-func (c *opContext) SetAssurance(a model.Assurance)           { c.assurance = a }
+func (c *opContext) Method() string                      { return "POST" }
+func (c *opContext) Path() string                        { return "" }
+func (c *opContext) Body() []byte                        { return c.body }
+func (c *opContext) GetHeader(string) string             { return "" }
+func (c *opContext) SetHeader(string, string)            {}
+func (c *opContext) WriteStatus(code int)                { c.status = code }
+func (c *opContext) Write(b []byte) (int, error)         { c.body = append([]byte{}, b...); return len(b), nil }
+func (c *opContext) SetValue(string, string)             {}
+func (c *opContext) Value(string) string                 { return "" }
+func (c *opContext) Param(string) string                 { return "" }
+func (c *opContext) SetCookie(router.Cookie)             {}
+func (c *opContext) Cookie(string) (router.Cookie, bool) { return router.Cookie{}, false }
+func (c *opContext) SetUserID(id string)                 { c.userID = id }
+func (c *opContext) UserID() string                      { return c.userID }
+func (c *opContext) SetAssurance(a model.Assurance)      { c.assurance = a }
 func (c *opContext) Assurance() model.Assurance {
 	if c.userID == "" {
 		return model.AssuranceNone
 	}
 	return c.assurance
 }
-func (c *opContext) Decode(into model.Decodable) error        { return json.Decode(c.body, into) }
+func (c *opContext) Decode(into model.Decodable) error { return json.Decode(c.body, into) }
 func (c *opContext) Encode(v model.Encodable) error {
 	var out []byte
 	if err := json.Encode(v, &out); err != nil {
