@@ -2,8 +2,10 @@
 PLAN: "feat(mcp): implement RequiresMFA — an MFA operation is never exposed as a tool"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 13074539659626758913
+PR: https://github.com/webtyp/mcp/pull/32
+REVIEWED_COMMIT: 06d0809d2c3b2d602be430fa4b31e22ba1971211
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
@@ -79,3 +81,7 @@ Use the real qualified-name format of the existing `tests/harvest_test.go`
 - `grep -n "MFA" tools.go` → empty (the public `Tool` struct is untouched).
 - Before opening the PR: `git diff --stat main` lists every file of the
   stages table, and no file is deleted that this plan does not order deleted.
+
+## Executor notes
+
+No deviations from the plan.

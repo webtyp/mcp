@@ -59,8 +59,11 @@ func HarvestOps(expose []ToolName, modules ...router.OperationModule) (ToolProvi
 		seen = append(seen, exp)
 
 		found := false
-		for _, t := range reg.tools {
+		for i, t := range reg.tools {
 			if t.Name == string(exp) {
+				if reg.mfa[i] {
+					return nil, harvestError("mcp: exposed tool " + string(exp) + errMsgRequiresMFA)
+				}
 				finalTools = append(finalTools, t)
 				found = true
 				break
@@ -84,6 +87,7 @@ func (s staticProvider) Tools() []Tool { return []Tool(s) }
 // there is nothing to leave unimplemented.
 type opRegistry struct {
 	tools []Tool
+	mfa   []bool
 	// module is the ModelName() of whichever module HarvestOps is currently
 	// mounting — set once per module, before that module's MountOperations
 	// runs, and is what qualifies every name Operation registers.
@@ -98,11 +102,13 @@ func (r *opRegistry) Operation(name string, h router.HandlerFunc) router.Route {
 			r.err = harvestError("mcp: duplicate tool name " + qualified)
 			idx := len(r.tools)
 			r.tools = append(r.tools, Tool{Name: qualified})
+			r.mfa = append(r.mfa, false)
 			return &opRoute{owner: r, idx: idx}
 		}
 	}
 	idx := len(r.tools)
 	r.tools = append(r.tools, Tool{Name: qualified, Execute: harvestExecute(qualified, h)})
+	r.mfa = append(r.mfa, false)
 	return &opRoute{owner: r, idx: idx}
 }
 
@@ -118,6 +124,10 @@ type opRoute struct {
 func (rt *opRoute) Requires(resource model.Resource, action model.Action) router.Route {
 	t := &rt.owner.tools[rt.idx]
 	t.Access, t.Resource, t.Action = model.AccessGuarded, resource, action
+	return rt
+}
+func (rt *opRoute) RequiresMFA() router.Route {
+	rt.owner.mfa[rt.idx] = true
 	return rt
 }
 func (rt *opRoute) Authenticated() router.Route {
@@ -145,26 +155,34 @@ var _ router.Route = (*opRoute)(nil)
 // Operation) can run unmodified against the MCP transport — the same handler would run verbatim
 // under any future op transport that harvests the SAME module's MountOperations.
 type opContext struct {
-	userID string
-	body   []byte // request: raw Arguments; after the handler runs: what it wrote via Encode/Write
-	status int
+	userID    string
+	assurance model.Assurance
+	body      []byte // request: raw Arguments; after the handler runs: what it wrote via Encode/Write
+	status    int
 }
 
-func (c *opContext) Method() string                          { return "POST" }
-func (c *opContext) Path() string                             { return "" }
-func (c *opContext) Body() []byte                             { return c.body }
-func (c *opContext) GetHeader(string) string                  { return "" }
-func (c *opContext) SetHeader(string, string)                 {}
-func (c *opContext) WriteStatus(code int)                     { c.status = code }
-func (c *opContext) Write(b []byte) (int, error)              { c.body = append([]byte{}, b...); return len(b), nil }
-func (c *opContext) SetValue(string, string)                  {}
-func (c *opContext) Value(string) string                      { return "" }
-func (c *opContext) Param(string) string                      { return "" }
-func (c *opContext) SetCookie(router.Cookie)                  {}
-func (c *opContext) Cookie(string) (router.Cookie, bool)      { return router.Cookie{}, false }
-func (c *opContext) SetUserID(id string)                      { c.userID = id }
-func (c *opContext) UserID() string                           { return c.userID }
-func (c *opContext) Decode(into model.Decodable) error        { return json.Decode(c.body, into) }
+func (c *opContext) Method() string                      { return "POST" }
+func (c *opContext) Path() string                        { return "" }
+func (c *opContext) Body() []byte                        { return c.body }
+func (c *opContext) GetHeader(string) string             { return "" }
+func (c *opContext) SetHeader(string, string)            {}
+func (c *opContext) WriteStatus(code int)                { c.status = code }
+func (c *opContext) Write(b []byte) (int, error)         { c.body = append([]byte{}, b...); return len(b), nil }
+func (c *opContext) SetValue(string, string)             {}
+func (c *opContext) Value(string) string                 { return "" }
+func (c *opContext) Param(string) string                 { return "" }
+func (c *opContext) SetCookie(router.Cookie)             {}
+func (c *opContext) Cookie(string) (router.Cookie, bool) { return router.Cookie{}, false }
+func (c *opContext) SetUserID(id string)                 { c.userID = id }
+func (c *opContext) UserID() string                      { return c.userID }
+func (c *opContext) SetAssurance(a model.Assurance)      { c.assurance = a }
+func (c *opContext) Assurance() model.Assurance {
+	if c.userID == "" {
+		return model.AssuranceNone
+	}
+	return c.assurance
+}
+func (c *opContext) Decode(into model.Decodable) error { return json.Decode(c.body, into) }
 func (c *opContext) Encode(v model.Encodable) error {
 	var out []byte
 	if err := json.Encode(v, &out); err != nil {

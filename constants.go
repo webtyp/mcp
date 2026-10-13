@@ -16,4 +16,5 @@ const (
 	ContentTypeText          = "text"
 	ContentTypeImage         = "image"
 	ContentTypeAudio         = "audio"
+	errMsgRequiresMFA        = " requires MFA, which an MCP session (a single bearer token) cannot prove: remove it from expose"
 )
