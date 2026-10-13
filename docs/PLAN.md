@@ -79,3 +79,7 @@ Use the real qualified-name format of the existing `tests/harvest_test.go`
 - `grep -n "MFA" tools.go` → empty (the public `Tool` struct is untouched).
 - Before opening the PR: `git diff --stat main` lists every file of the
   stages table, and no file is deleted that this plan does not order deleted.
+
+## Executor notes
+
+No deviations from the plan.

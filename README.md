@@ -166,7 +166,7 @@ MCP is the agents' surface; browsers call operations through `webtyp.com/rpc`; l
 
 | Symbol | Description |
 |--------|-------------|
-| `HarvestOps(expose, modules...)` | Build a `ToolProvider` with only the exposed operations |
+| `HarvestOps(expose, modules...)` | Build a `ToolProvider` with only the exposed operations. An op that `RequiresMFA` cannot be exposed. |
 | `NewServer(config, providers)` | Create MCP server — returns `(*Server, error)` |
 | `NewClient(baseURL, authToken)` | Create MCP client |
 | `NewCaller(client)` | Adapt `*Client` to `router.Caller` (recommended for views) |
