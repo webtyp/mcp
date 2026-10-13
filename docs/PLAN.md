@@ -2,8 +2,10 @@
 PLAN: "feat(mcp): implement RequiresMFA — an MFA operation is never exposed as a tool"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 13074539659626758913
+PR: https://github.com/webtyp/mcp/pull/32
+REVIEWED_COMMIT: 1d294086615f9fc02bb7607b026bb6563f7a8bbf
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
