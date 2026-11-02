@@ -4,6 +4,7 @@ import "webtyp.com/model"
 
 var rpcRequestModel = model.Definition{
 	Name: "rpc_request",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "jsonrpc", Type: model.Text()},
 		{Name: "id", Type: model.Raw()},
@@ -17,6 +18,7 @@ var rpcRequestModel = model.Definition{
 
 var rpcResponseModel = model.Definition{
 	Name: "rpc_response",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "jsonrpc", Type: model.Text()},
 		{Name: "id", Type: model.Raw()},
@@ -30,6 +32,7 @@ var rpcResponseModel = model.Definition{
 
 var jsonRPCErrorModel = model.Definition{
 	Name: "json_rpcerror",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "code", Type: model.Int()},
 		{Name: "message", Type: model.Text()},
@@ -39,6 +42,7 @@ var jsonRPCErrorModel = model.Definition{
 
 var initializeParamsModel = model.Definition{
 	Name: "initialize_params",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "protocolVersion", Type: model.Text()},
 		{Name: "clientInfo", Type: model.Struct(&implementationInfoModel)},
@@ -47,6 +51,7 @@ var initializeParamsModel = model.Definition{
 
 var implementationInfoModel = model.Definition{
 	Name: "implementation_info",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "name", Type: model.Text()},
 		{Name: "version", Type: model.Text()},
@@ -55,6 +60,7 @@ var implementationInfoModel = model.Definition{
 
 var initializeResultModel = model.Definition{
 	Name: "initialize_result",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "protocolVersion", Type: model.Text()},
 		{Name: "serverInfo", Type: model.Struct(&implementationInfoModel)},
@@ -64,6 +70,7 @@ var initializeResultModel = model.Definition{
 
 var CallToolParamsModel = model.Definition{
 	Name: "call_tool_params",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "name", Type: model.Text()},
 		{Name: "arguments", Type: model.Raw()},
@@ -72,6 +79,7 @@ var CallToolParamsModel = model.Definition{
 
 var ResultModel = model.Definition{
 	Name: "result",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "isError", Type: model.Bool(), OmitEmpty: true},
 		{Name: "content", Type: model.Raw(), OmitEmpty: true},
@@ -80,6 +88,7 @@ var ResultModel = model.Definition{
 
 var TextContentModel = model.Definition{
 	Name: "text_content",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "type", Type: model.Text()},
 		{Name: "text", Type: model.Text()},
@@ -88,6 +97,7 @@ var TextContentModel = model.Definition{
 
 var ImageContentModel = model.Definition{
 	Name: "image_content",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "type", Type: model.Text()},
 		{Name: "data", Type: model.Text()},
@@ -97,6 +107,7 @@ var ImageContentModel = model.Definition{
 
 var toolEntryModel = model.Definition{
 	Name: "tool_entry",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "name", Type: model.Text()},
 		{Name: "description", Type: model.Text(), OmitEmpty: true},
@@ -107,6 +118,7 @@ var toolEntryModel = model.Definition{
 
 var listToolsResultModel = model.Definition{
 	Name: "list_tools_result",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "tools", Type: model.Raw()},
 		{Name: "nextCursor", Type: model.Text(), OmitEmpty: true},
@@ -115,6 +127,7 @@ var listToolsResultModel = model.Definition{
 
 var errorResponseModel = model.Definition{
 	Name: "error_response",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "jsonrpc", Type: model.Text()},
 		{Name: "id", Type: model.Raw()},
@@ -124,6 +137,7 @@ var errorResponseModel = model.Definition{
 
 var MetaModel = model.Definition{
 	Name: "meta",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "progressToken", Type: model.Text(), OmitEmpty: true},
 	},
@@ -131,6 +145,7 @@ var MetaModel = model.Definition{
 
 var NotificationParamsModel = model.Definition{
 	Name: "notification_params",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "meta", Type: model.Text(), OmitEmpty: true},
 	},
@@ -138,6 +153,7 @@ var NotificationParamsModel = model.Definition{
 
 var EmptyResultModel = model.Definition{
 	Name: "empty_result",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "result", Type: model.Text(), OmitEmpty: true},
 	},
@@ -145,6 +161,7 @@ var EmptyResultModel = model.Definition{
 
 var JSONRPCRequestModel = model.Definition{
 	Name: "jsonrpcrequest",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "jsonrpc", Type: model.Text()},
 		{Name: "id", Type: model.Raw()},
@@ -155,6 +172,7 @@ var JSONRPCRequestModel = model.Definition{
 
 var JSONRPCNotificationModel = model.Definition{
 	Name: "jsonrpcnotification",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "jsonrpc", Type: model.Text()},
 		{Name: "method", Type: model.Text()},
@@ -164,6 +182,7 @@ var JSONRPCNotificationModel = model.Definition{
 
 var JSONRPCResponseStructModel = model.Definition{
 	Name: "jsonrpcresponse_struct",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "jsonrpc", Type: model.Text()},
 		{Name: "id", Type: model.Raw()},
@@ -180,6 +199,7 @@ func (r *JSONRPCResponseStruct) jsonrpcMessage() {}
 
 var JSONRPCErrorModel = model.Definition{
 	Name: "jsonrpcerror",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "jsonrpc", Type: model.Text()},
 		{Name: "id", Type: model.Raw()},
@@ -191,6 +211,7 @@ func (e *JSONRPCError) jsonrpcMessage() {}
 
 var JSONRPCErrorDetailsModel = model.Definition{
 	Name: "jsonrpcerror_details",
+	Wire: true,
 	Fields: model.Fields{
 		{Name: "code", Type: model.Int()},
 		{Name: "message", Type: model.Text()},

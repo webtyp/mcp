@@ -15,6 +15,8 @@ type rpcRequest struct {
 
 func (m *rpcRequest) ModelName() string { return "rpc_request" }
 
+func (m *rpcRequest) Wire() bool { return true }
+
 func (m *rpcRequest) Schema() []model.Field { return rpcRequestModel.Fields }
 
 func (m *rpcRequest) Pointers() []any { return []any{&m.Jsonrpc, &m.Id, &m.Method, &m.Params} }
@@ -57,6 +59,8 @@ type rpcResponse struct {
 
 func (m *rpcResponse) ModelName() string { return "rpc_response" }
 
+func (m *rpcResponse) Wire() bool { return true }
+
 func (m *rpcResponse) Schema() []model.Field { return rpcResponseModel.Fields }
 
 func (m *rpcResponse) Pointers() []any { return []any{&m.Jsonrpc, &m.Id, &m.Result, &m.Error} }
@@ -98,6 +102,8 @@ type jsonRPCError struct {
 
 func (m *jsonRPCError) ModelName() string { return "json_rpcerror" }
 
+func (m *jsonRPCError) Wire() bool { return true }
+
 func (m *jsonRPCError) Schema() []model.Field { return jsonRPCErrorModel.Fields }
 
 func (m *jsonRPCError) Pointers() []any { return []any{&m.Code, &m.Message, &m.Data} }
@@ -136,6 +142,8 @@ type initializeParams struct {
 
 func (m *initializeParams) ModelName() string { return "initialize_params" }
 
+func (m *initializeParams) Wire() bool { return true }
+
 func (m *initializeParams) Schema() []model.Field { return initializeParamsModel.Fields }
 
 func (m *initializeParams) Pointers() []any { return []any{&m.ProtocolVersion, &m.ClientInfo} }
@@ -171,6 +179,8 @@ type implementationInfo struct {
 }
 
 func (m *implementationInfo) ModelName() string { return "implementation_info" }
+
+func (m *implementationInfo) Wire() bool { return true }
 
 func (m *implementationInfo) Schema() []model.Field { return implementationInfoModel.Fields }
 
@@ -208,6 +218,8 @@ type initializeResult struct {
 }
 
 func (m *initializeResult) ModelName() string { return "initialize_result" }
+
+func (m *initializeResult) Wire() bool { return true }
 
 func (m *initializeResult) Schema() []model.Field { return initializeResultModel.Fields }
 
@@ -247,6 +259,8 @@ type CallToolParams struct {
 
 func (m *CallToolParams) ModelName() string { return "call_tool_params" }
 
+func (m *CallToolParams) Wire() bool { return true }
+
 func (m *CallToolParams) Schema() []model.Field { return CallToolParamsModel.Fields }
 
 func (m *CallToolParams) Pointers() []any { return []any{&m.Name, &m.Arguments} }
@@ -282,6 +296,8 @@ type Result struct {
 }
 
 func (m *Result) ModelName() string { return "result" }
+
+func (m *Result) Wire() bool { return true }
 
 func (m *Result) Schema() []model.Field { return ResultModel.Fields }
 
@@ -319,6 +335,8 @@ type TextContent struct {
 
 func (m *TextContent) ModelName() string { return "text_content" }
 
+func (m *TextContent) Wire() bool { return true }
+
 func (m *TextContent) Schema() []model.Field { return TextContentModel.Fields }
 
 func (m *TextContent) Pointers() []any { return []any{&m.Type, &m.Text} }
@@ -355,6 +373,8 @@ type ImageContent struct {
 }
 
 func (m *ImageContent) ModelName() string { return "image_content" }
+
+func (m *ImageContent) Wire() bool { return true }
 
 func (m *ImageContent) Schema() []model.Field { return ImageContentModel.Fields }
 
@@ -396,6 +416,8 @@ type toolEntry struct {
 
 func (m *toolEntry) ModelName() string { return "tool_entry" }
 
+func (m *toolEntry) Wire() bool { return true }
+
 func (m *toolEntry) Schema() []model.Field { return toolEntryModel.Fields }
 
 func (m *toolEntry) Pointers() []any { return []any{&m.Name, &m.Description, &m.InputSchema, &m.Annotations} }
@@ -436,6 +458,8 @@ type listToolsResult struct {
 
 func (m *listToolsResult) ModelName() string { return "list_tools_result" }
 
+func (m *listToolsResult) Wire() bool { return true }
+
 func (m *listToolsResult) Schema() []model.Field { return listToolsResultModel.Fields }
 
 func (m *listToolsResult) Pointers() []any { return []any{&m.Tools, &m.NextCursor} }
@@ -472,6 +496,8 @@ type errorResponse struct {
 }
 
 func (m *errorResponse) ModelName() string { return "error_response" }
+
+func (m *errorResponse) Wire() bool { return true }
 
 func (m *errorResponse) Schema() []model.Field { return errorResponseModel.Fields }
 
@@ -510,6 +536,8 @@ type Meta struct {
 
 func (m *Meta) ModelName() string { return "meta" }
 
+func (m *Meta) Wire() bool { return true }
+
 func (m *Meta) Schema() []model.Field { return MetaModel.Fields }
 
 func (m *Meta) Pointers() []any { return []any{&m.ProgressToken} }
@@ -543,6 +571,8 @@ type NotificationParams struct {
 
 func (m *NotificationParams) ModelName() string { return "notification_params" }
 
+func (m *NotificationParams) Wire() bool { return true }
+
 func (m *NotificationParams) Schema() []model.Field { return NotificationParamsModel.Fields }
 
 func (m *NotificationParams) Pointers() []any { return []any{&m.Meta} }
@@ -575,6 +605,8 @@ type EmptyResult struct {
 }
 
 func (m *EmptyResult) ModelName() string { return "empty_result" }
+
+func (m *EmptyResult) Wire() bool { return true }
 
 func (m *EmptyResult) Schema() []model.Field { return EmptyResultModel.Fields }
 
@@ -611,6 +643,8 @@ type JSONRPCRequest struct {
 }
 
 func (m *JSONRPCRequest) ModelName() string { return "jsonrpcrequest" }
+
+func (m *JSONRPCRequest) Wire() bool { return true }
 
 func (m *JSONRPCRequest) Schema() []model.Field { return JSONRPCRequestModel.Fields }
 
@@ -653,6 +687,8 @@ type JSONRPCNotification struct {
 
 func (m *JSONRPCNotification) ModelName() string { return "jsonrpcnotification" }
 
+func (m *JSONRPCNotification) Wire() bool { return true }
+
 func (m *JSONRPCNotification) Schema() []model.Field { return JSONRPCNotificationModel.Fields }
 
 func (m *JSONRPCNotification) Pointers() []any { return []any{&m.Jsonrpc, &m.Method, &m.Params} }
@@ -692,6 +728,8 @@ type JSONRPCResponseStruct struct {
 }
 
 func (m *JSONRPCResponseStruct) ModelName() string { return "jsonrpcresponse_struct" }
+
+func (m *JSONRPCResponseStruct) Wire() bool { return true }
 
 func (m *JSONRPCResponseStruct) Schema() []model.Field { return JSONRPCResponseStructModel.Fields }
 
@@ -734,6 +772,8 @@ type JSONRPCError struct {
 
 func (m *JSONRPCError) ModelName() string { return "jsonrpcerror" }
 
+func (m *JSONRPCError) Wire() bool { return true }
+
 func (m *JSONRPCError) Schema() []model.Field { return JSONRPCErrorModel.Fields }
 
 func (m *JSONRPCError) Pointers() []any { return []any{&m.Jsonrpc, &m.Id, &m.Error} }
@@ -772,6 +812,8 @@ type JSONRPCErrorDetails struct {
 }
 
 func (m *JSONRPCErrorDetails) ModelName() string { return "jsonrpcerror_details" }
+
+func (m *JSONRPCErrorDetails) Wire() bool { return true }
 
 func (m *JSONRPCErrorDetails) Schema() []model.Field { return JSONRPCErrorDetailsModel.Fields }
 
