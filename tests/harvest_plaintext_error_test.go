@@ -7,44 +7,48 @@ import (
 	"testing"
 
 	"webtyp.com/context"
+	"webtyp.com/crud"
 	"webtyp.com/json"
 	"webtyp.com/mcp"
 	"webtyp.com/model"
-	"webtyp.com/router"
 )
 
-// plainTextErrorModule mimics the error-writing convention every domain
-// module in this ecosystem already uses (see e.g.
-// veltylabs/appointment_booking's own writeError): decode → business logic
-// → on failure, ctx.WriteStatus(4xx/5xx) then ctx.Write([]byte(err.Error()))
-// — PLAIN TEXT, never a JSON-encoded value. A tool harvested via HarvestOps
-// must still be wire-compatible when that plain text reaches a real caller.
+type failRecord struct {
+	ID string
+}
+
+func (r *failRecord) ModelName() string { return "fail_rec" }
+func (r *failRecord) IsNil() bool       { return r == nil }
+func (r *failRecord) Schema() []model.Field {
+	return []model.Field{{Name: "id", Type: model.Text()}}
+}
+func (r *failRecord) Pointers() []any                  { return []any{&r.ID} }
+func (r *failRecord) EncodeFields(w model.FieldWriter) { w.String("id", r.ID) }
+func (r *failRecord) DecodeFields(d model.FieldReader) { r.ID, _ = d.String("id") }
+
+type failRecordList []*failRecord
+
+func (s *failRecordList) Len() int                         { return len(*s) }
+func (s *failRecordList) At(i int) model.Fielder           { return (*s)[i] }
+func (s *failRecordList) Append() model.Fielder            { v := &failRecord{}; *s = append(*s, v); return v }
+func (s *failRecordList) IsNil() bool                      { return s == nil }
+func (s *failRecordList) EncodeFields(_ model.FieldWriter) {}
+func (s *failRecordList) DecodeFields(_ model.FieldReader) {}
+
 type plainTextErrorModule struct{}
 
 func (plainTextErrorModule) ModelName() string { return "plaintext" }
-func (plainTextErrorModule) MountOperations(r router.OperationRegistry) {
-	r.Operation("fail", func(ctx router.Context) {
-		ctx.WriteStatus(404)
-		ctx.Write([]byte("patient not found"))
-	}).Requires("plaintext", model.Read)
+func (plainTextErrorModule) MountOperations(reg crud.Registry) {
+	reg.Read(&failRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		return nil, model.NotFound("patient not found")
+	})
 }
 
-var _ router.OperationModule = plainTextErrorModule{}
+var _ crud.Module = plainTextErrorModule{}
 
-// TestHarvestOps_PlainTextErrorSurvivesRealWireRoundTrip: harvestExecute
-// builds Result.Content directly from the handler's raw response body
-// (Content: string(oc.body)), and Result.EncodeFields embeds Content via
-// w.Raw — verbatim, no JSON-string quoting. That is correct when the body
-// is already-serialized JSON (ctx.Encode's normal success output), but a
-// PLAIN TEXT error body — the ecosystem-wide error-writing convention — is
-// not valid JSON on its own: embedding `patient not found` unquoted after
-// `"content":` produces a syntactically broken JSON-RPC response. Every
-// existing test that touches Result.Content on the error path
-// (TestCaller_Call_ToolError) hand-constructs an already-valid
-// `[{"type":"text","text":"..."}]` Content and never exercises
-// harvestExecute's own construction — this is what closes that gap.
 func TestHarvestOps_PlainTextErrorSurvivesRealWireRoundTrip(t *testing.T) {
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("plaintext", "fail")}, plainTextErrorModule{})
+	opRead := crud.Op(&failRecord{}, model.Read)
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("plaintext", opRead)}, plainTextErrorModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -71,7 +75,7 @@ func TestHarvestOps_PlainTextErrorSurvivesRealWireRoundTrip(t *testing.T) {
 	caller := mcp.NewCaller(mcp.NewClient(ts.URL, ""))
 
 	done := make(chan error, 1)
-	caller.Call("plaintext.fail", nil, nil, func(err error) { done <- err })
+	caller.Call("plaintext."+opRead, nil, nil, func(err error) { done <- err })
 	err = <-done
 
 	if err == nil {
@@ -80,10 +84,6 @@ func TestHarvestOps_PlainTextErrorSurvivesRealWireRoundTrip(t *testing.T) {
 	if !strings.Contains(err.Error(), "patient not found") {
 		t.Fatalf("expected the real error message to survive the wire round trip, got: %v", err)
 	}
-	// The message is what a person reads in a UI — it must be the sentence the
-	// handler wrote, not the content-block envelope that carried it. A caller
-	// that pastes Content in raw shows `[{"type":"text","text":"patient not
-	// found"}]` to the user, which is the transport leaking through the seam.
 	if strings.Contains(err.Error(), `{"type"`) {
 		t.Errorf("the caller must unwrap the content block, not paste it raw: %v", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"webtyp.com/context"
+	"webtyp.com/crud"
 	"webtyp.com/json"
 	"webtyp.com/mcp"
 	"webtyp.com/model"
@@ -43,7 +44,8 @@ import (
 // "{}" (a valid empty JSON object), never as the empty Go string "" — see
 // docs/PLAN.md.
 func TestCaller_Call_NilArgsAgainstOpThatDecodes(t *testing.T) {
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", "do_thing")}, fakeModule{})
+	opRead := crud.Op(&fakeRecord{}, model.Read)
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", opRead)}, fakeModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -77,22 +79,15 @@ func TestCaller_Call_NilArgsAgainstOpThatDecodes(t *testing.T) {
 	caller := mcp.NewCaller(client)
 
 	done := make(chan error, 1)
-	var out fakeArgs
-	// This is EXACTLY what webtyp.com/view's callerLister.list() does on
-	// every Reload(): pass nil for args because there is nothing this call
-	// needs to send, and decode the (possibly empty) result into a real,
-	// non-nil destination.
-	caller.Call("fake.do_thing", nil, &out, func(err error) {
+	var out fakeRecordList
+	caller.Call("fake."+opRead, nil, &out, func(err error) {
 		done <- err
 	})
 
 	if err := <-done; err != nil {
-		t.Fatalf("caller.Call with nil args against an op that calls ctx.Decode failed: %v — "+
-			"this is the root cause of the \"0 / 0\" list bug: view.NewCallerLister always "+
-			"passes nil for args on List, and nil must round-trip as an empty JSON object, "+
-			"never as the JSON literal null", err)
+		t.Fatalf("caller.Call with nil args failed: %v", err)
 	}
-	if out.Value != "echo:" {
-		t.Errorf("out.Value = %q, want %q (fakeModule.do_thing echoes empty input back)", out.Value, "echo:")
+	if len(out) != 1 || out[0].Value != "echo:" {
+		t.Fatalf("unexpected out: %+v", out)
 	}
 }

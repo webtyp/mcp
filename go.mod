@@ -17,9 +17,16 @@ require webtyp.com/time v0.6.4
 
 require (
 	webtyp.com/calendar v0.1.0 // indirect
+	webtyp.com/crud v0.0.2
 	webtyp.com/escape v0.1.0 // indirect
 	webtyp.com/filepath v0.1.0 // indirect
 )
 
 // Local dev: Encode/Decode (standard, padded base64) were just added and
 // aren't in the v0.0.3 tag yet.
+
+replace webtyp.com/model => ../model
+
+replace webtyp.com/router => ../router
+
+replace webtyp.com/crud => ../crud

@@ -109,7 +109,7 @@ MCP is the agents' surface; browsers call operations through `webtyp.com/rpc`; l
 
 | File | Role |
 |------|------|
-| `harvest.go` | `HarvestOps(expose, modules...)` — builds a `ToolProvider` from `router.OperationModule`s with ONLY the operations named in expose |
+| `harvest.go` | `HarvestOps(expose, modules...)` — builds a `ToolProvider` from `crud.Module`s with ONLY the operations named in expose |
 | `server.go` | `Server`, `NewServer`, handlers (init/ping/list/call) |
 | `request_handler.go` | `HandleMessage` dispatch, JSON extraction, context keys |
 | `mcp_auth.go` | `Authorize` type + `AllowAll` helper |

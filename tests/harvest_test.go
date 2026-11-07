@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"webtyp.com/context"
+	"webtyp.com/crud"
 	"webtyp.com/mcp"
 	"webtyp.com/model"
-	"webtyp.com/router"
 )
 
 type fakeArgs struct{ Value string }
@@ -22,66 +22,98 @@ func (a *fakeArgs) DecodeFields(r model.FieldReader) {
 	}
 }
 
-// fakeModule mimics a domain module: implements router.OperationModule, imports ONLY router+model.
+type fakeRecord struct {
+	ID    string
+	Value string
+}
+
+func (r *fakeRecord) ModelName() string { return "fake_rec" }
+func (r *fakeRecord) IsNil() bool       { return r == nil }
+func (r *fakeRecord) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.Text()},
+		{Name: "value", Type: model.Text()},
+	}
+}
+func (r *fakeRecord) Pointers() []any                  { return []any{&r.ID, &r.Value} }
+func (r *fakeRecord) EncodeFields(w model.FieldWriter) { w.String("id", r.ID); w.String("value", r.Value) }
+func (r *fakeRecord) DecodeFields(d model.FieldReader) {
+	r.ID, _ = d.String("id")
+	r.Value, _ = d.String("value")
+}
+
+type fakeRecordList []*fakeRecord
+
+func (s *fakeRecordList) Len() int                         { return len(*s) }
+func (s *fakeRecordList) At(i int) model.Fielder           { return (*s)[i] }
+func (s *fakeRecordList) Append() model.Fielder            { v := &fakeRecord{}; *s = append(*s, v); return v }
+func (s *fakeRecordList) IsNil() bool                      { return s == nil }
+func (s *fakeRecordList) EncodeFields(_ model.FieldWriter) {}
+func (s *fakeRecordList) DecodeFields(_ model.FieldReader) {}
+
+// fakeModule mimics a domain module: implements crud.Module.
 type fakeModule struct{}
 
 func (fakeModule) ModelName() string { return "fake" }
-func (fakeModule) MountOperations(r router.OperationRegistry) {
-	r.Operation("do_thing", func(ctx router.Context) {
-		var in fakeArgs
-		if err := ctx.Decode(&in); err != nil {
-			ctx.WriteStatus(500)
-			return
-		}
-		_ = ctx.Encode(&fakeArgs{Value: "echo:" + in.Value})
-	}).Requires("fake_resource", model.Read).Accepts(&fakeArgs{})
+func (fakeModule) MountOperations(reg crud.Registry) {
+	reg.Read(&fakeRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		out := fakeRecordList{&fakeRecord{Value: "echo:" + args.Search}}
+		return &out, nil
+	}).Describe("Do thing")
 }
 
-var _ router.OperationModule = fakeModule{}
+var _ crud.Module = fakeModule{}
 
-// fakeMeModuleA and fakeMeModuleB mimic two independent domain modules that happen to both
-// register the "me" operation — the real-world collision (e.g. authority.Module vs an app-local
-// module both exposing "me").
 type fakeMeModuleA struct{}
 
 func (fakeMeModuleA) ModelName() string { return "fake_a" }
-func (fakeMeModuleA) MountOperations(r router.OperationRegistry) {
-	r.Operation("me", func(ctx router.Context) {}).Public()
+func (fakeMeModuleA) MountOperations(reg crud.Registry) {
+	reg.Read(&fakeRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		out := fakeRecordList{}
+		return &out, nil
+	})
 }
 
-var _ router.OperationModule = fakeMeModuleA{}
+var _ crud.Module = fakeMeModuleA{}
 
 type fakeMeModuleB struct{}
 
 func (fakeMeModuleB) ModelName() string { return "fake_b" }
-func (fakeMeModuleB) MountOperations(r router.OperationRegistry) {
-	r.Operation("me", func(ctx router.Context) {}).Public()
+func (fakeMeModuleB) MountOperations(reg crud.Registry) {
+	reg.Read(&fakeRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		out := fakeRecordList{}
+		return &out, nil
+	})
 }
 
-var _ router.OperationModule = fakeMeModuleB{}
+var _ crud.Module = fakeMeModuleB{}
 
-// fakeTwoOpsModule registers two distinct operation names — must harvest cleanly with no panic.
 type fakeTwoOpsModule struct{}
 
 func (fakeTwoOpsModule) ModelName() string { return "fake_two" }
-func (fakeTwoOpsModule) MountOperations(r router.OperationRegistry) {
-	r.Operation("op_a", func(ctx router.Context) {}).Public()
-	r.Operation("op_b", func(ctx router.Context) {}).Public()
+func (fakeTwoOpsModule) MountOperations(reg crud.Registry) {
+	reg.Read(&fakeRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		out := fakeRecordList{}
+		return &out, nil
+	})
+	reg.Create(func() model.ModelSlice { return &fakeRecordList{} }, func(c crud.Caller, list model.ModelSlice) error {
+		return nil
+	})
 }
 
-var _ router.OperationModule = fakeTwoOpsModule{}
+var _ crud.Module = fakeTwoOpsModule{}
 
-// fakeUnnamedModule mimics a module that forgot (or was written wrong) to
-// return a real ModelName() — the case HarvestOps must refuse, not harvest
-// under an empty prefix.
 type fakeUnnamedModule struct{}
 
 func (fakeUnnamedModule) ModelName() string { return "" }
-func (fakeUnnamedModule) MountOperations(r router.OperationRegistry) {
-	r.Operation("op", func(ctx router.Context) {}).Public()
+func (fakeUnnamedModule) MountOperations(reg crud.Registry) {
+	reg.Read(&fakeRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		out := fakeRecordList{}
+		return &out, nil
+	})
 }
 
-var _ router.OperationModule = fakeUnnamedModule{}
+var _ crud.Module = fakeUnnamedModule{}
 
 func TestHarvestOps_EmptyModelNameError(t *testing.T) {
 	_, err := mcp.HarvestOps(nil, fakeUnnamedModule{})
@@ -93,13 +125,9 @@ func TestHarvestOps_EmptyModelNameError(t *testing.T) {
 	}
 }
 
-// TestHarvestOps_SameBareNameAcrossModulesNoLongerCollides is the acid test
-// of module-qualified names: fakeMeModuleA and fakeMeModuleB both register
-// the bare name "me" — before qualification this panicked ("duplicate tool
-// name"); now the two are "fake_a.me" and "fake_b.me", genuinely distinct,
-// and both must be reachable.
 func TestHarvestOps_SameBareNameAcrossModulesNoLongerCollides(t *testing.T) {
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_a", "me"), mcp.ToolNameOf("fake_b", "me")}, fakeMeModuleA{}, fakeMeModuleB{})
+	opName := crud.Op(&fakeRecord{}, model.Read)
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_a", opName), mcp.ToolNameOf("fake_b", opName)}, fakeMeModuleA{}, fakeMeModuleB{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -111,13 +139,17 @@ func TestHarvestOps_SameBareNameAcrossModulesNoLongerCollides(t *testing.T) {
 	for _, tool := range tools {
 		names[tool.Name] = true
 	}
-	if !names["fake_a.me"] || !names["fake_b.me"] {
-		t.Fatalf("expected qualified names %q and %q, got %v", "fake_a.me", "fake_b.me", names)
+	wantA := "fake_a." + opName
+	wantB := "fake_b." + opName
+	if !names[wantA] || !names[wantB] {
+		t.Fatalf("expected qualified names %q and %q, got %v", wantA, wantB, names)
 	}
 }
 
 func TestHarvestOps_DistinctNamesNoPanic(t *testing.T) {
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_two", "op_a"), mcp.ToolNameOf("fake_two", "op_b")}, fakeTwoOpsModule{})
+	opRead := crud.Op(&fakeRecord{}, model.Read)
+	opCreate := crud.Op(&fakeRecord{}, model.Create)
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_two", opRead), mcp.ToolNameOf("fake_two", opCreate)}, fakeTwoOpsModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -127,23 +159,21 @@ func TestHarvestOps_DistinctNamesNoPanic(t *testing.T) {
 	}
 }
 
-// TestHarvestOps_SameModuleInstanceTwiceError: the SAME module (same
-// ModelName()) harvested twice produces the SAME qualified name twice —
-// qualification narrows the panic to genuine duplicates, it does not remove
-// it.
 func TestHarvestOps_SameModuleInstanceTwiceError(t *testing.T) {
 	fm := fakeModule{}
 	_, err := mcp.HarvestOps(nil, fm, fm)
 	if err == nil {
 		t.Fatal("expected error when the same module instance is harvested twice, got nil")
 	}
-	if !strings.Contains(err.Error(), `duplicate tool name fake.do_thing`) {
-		t.Fatalf("error message %v does not name the duplicated qualified tool", err)
+	want := "duplicate tool name fake." + crud.Op(&fakeRecord{}, model.Read)
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("error message %v does not contain %q", err, want)
 	}
 }
 
 func TestHarvestOps_ModuleReachesMCP(t *testing.T) {
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", "do_thing")}, fakeModule{})
+	opRead := crud.Op(&fakeRecord{}, model.Read)
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", opRead)}, fakeModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -152,21 +182,21 @@ func TestHarvestOps_ModuleReachesMCP(t *testing.T) {
 		t.Fatalf("expected 1 harvested tool, got %d", len(tools))
 	}
 	tool := tools[0]
-	if tool.Name != "fake.do_thing" || tool.Resource != "fake_resource" || tool.Action != model.Read {
+	if tool.Name != "fake."+opRead || tool.Resource != "fake_rec" || tool.Action != model.Read {
 		t.Fatalf("harvested tool metadata mismatch: %+v", tool)
 	}
 	if tool.Args == nil {
 		t.Fatal("expected Accepts(...) to populate Tool.Args")
 	}
 
-	res, err := tool.Execute(nil, mcp.Request{Params: mcp.CallToolParams{Arguments: `{"value":"x"}`}})
+	res, err := tool.Execute(nil, mcp.Request{Params: mcp.CallToolParams{Arguments: `{"search":"x"}`}})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
 	if res.IsError {
 		t.Fatalf("unexpected IsError, content: %s", res.Content)
 	}
-	if res.Content != `{"value":"echo:x"}` {
+	if !strings.Contains(res.Content, `"value":"echo:x"`) {
 		t.Errorf("unexpected content: %s", res.Content)
 	}
 }
@@ -174,20 +204,22 @@ func TestHarvestOps_ModuleReachesMCP(t *testing.T) {
 type fakeAuthAndGuardedModule struct{}
 
 func (fakeAuthAndGuardedModule) ModelName() string { return "fake_auth_guarded" }
-func (fakeAuthAndGuardedModule) MountOperations(r router.OperationRegistry) {
-	r.Operation("me", func(ctx router.Context) {
-		_ = ctx.Encode(&fakeArgs{Value: "user:" + ctx.UserID()})
-	}).Authenticated()
-
-	r.Operation("read_thing", func(ctx router.Context) {
-		_ = ctx.Encode(&fakeArgs{Value: "thing_read"})
-	}).Requires("thing", model.Read)
+func (fakeAuthAndGuardedModule) MountOperations(reg crud.Registry) {
+	reg.Read(&fakeRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		out := fakeRecordList{&fakeRecord{Value: "user:" + c.UserID}}
+		return &out, nil
+	})
+	reg.Create(func() model.ModelSlice { return &fakeRecordList{} }, func(c crud.Caller, list model.ModelSlice) error {
+		return nil
+	})
 }
 
-var _ router.OperationModule = fakeAuthAndGuardedModule{}
+var _ crud.Module = fakeAuthAndGuardedModule{}
 
 func TestHarvestOps_AuthenticatedAndGuardedOps(t *testing.T) {
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_auth_guarded", "me"), mcp.ToolNameOf("fake_auth_guarded", "read_thing")}, fakeAuthAndGuardedModule{})
+	opRead := crud.Op(&fakeRecord{}, model.Read)
+	opCreate := crud.Op(&fakeRecord{}, model.Create)
+	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_auth_guarded", opRead), mcp.ToolNameOf("fake_auth_guarded", opCreate)}, fakeAuthAndGuardedModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -203,20 +235,12 @@ func TestHarvestOps_AuthenticatedAndGuardedOps(t *testing.T) {
 	ctx := context.Background()
 	ctx.Set(mcp.CtxKeyUserID, "user123")
 
-	resMe, err := callTool(srv, ctx, "fake_auth_guarded.me")
+	resMe, err := callTool(srv, ctx, "fake_auth_guarded."+opRead)
 	if err != nil {
-		t.Fatalf("callTool('fake_auth_guarded.me') failed: %v", err)
+		t.Fatalf("callTool('fake_auth_guarded.%s') failed: %v", opRead, err)
 	}
 	if !strings.Contains(resMe, "user:user123") {
-		t.Errorf("expected me result to contain 'user:user123', got: %s", resMe)
-	}
-
-	resRead, err := callTool(srv, ctx, "fake_auth_guarded.read_thing")
-	if err != nil {
-		t.Fatalf("callTool('fake_auth_guarded.read_thing') failed: %v", err)
-	}
-	if !strings.Contains(resRead, "thing_read") {
-		t.Errorf("expected read_thing result to contain 'thing_read', got: %s", resRead)
+		t.Errorf("expected read result to contain 'user:user123', got: %s", resMe)
 	}
 }
 
@@ -242,11 +266,26 @@ func TestHarvestOps_ExposeUnknown(t *testing.T) {
 }
 
 func TestHarvestOps_ExposeTwice(t *testing.T) {
-	_, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", "do_thing"), mcp.ToolNameOf("fake", "do_thing")}, fakeModule{})
+	opRead := crud.Op(&fakeRecord{}, model.Read)
+	_, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", opRead), mcp.ToolNameOf("fake", opRead)}, fakeModule{})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 	if !strings.Contains(err.Error(), "listed twice in expose") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+type errWiringModule struct{}
+
+func (errWiringModule) ModelName() string { return "errwire" }
+func (errWiringModule) MountOperations(reg crud.Registry) {
+	reg.Create(nil, nil)
+}
+
+func TestHarvestOps_CrudWiringError(t *testing.T) {
+	_, err := mcp.HarvestOps(nil, errWiringModule{})
+	if err != crud.ErrNilFunction {
+		t.Fatalf("expected crud.ErrNilFunction, got %v", err)
 	}
 }

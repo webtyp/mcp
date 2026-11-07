@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"webtyp.com/context"
+	"webtyp.com/crud"
 	"webtyp.com/fmt"
 	"webtyp.com/json"
 	"webtyp.com/model"
@@ -12,7 +13,7 @@ import (
 type ToolName string
 
 // ToolNameOf builds the qualified name of one operation, from the module's constants:
-// mcp.ToolNameOf(booking.ModelName, booking.OpListReservationsByStaff).
+// mcp.ToolNameOf(booking.ModelName, crud.Op(&booking.Reservation{}, model.Read)).
 func ToolNameOf(module, op string) ToolName {
 	return ToolName(module + "." + op)
 }
@@ -28,7 +29,7 @@ const errEmptyModelName = harvestError("mcp: module with empty ModelName()")
 // Errors (nothing is returned): a module with an empty ModelName(), the same qualified name
 // registered twice, a name repeated in expose, or a name in expose that no module registered
 // (a typo must fail at startup, not silently hide a tool).
-func HarvestOps(expose []ToolName, modules ...router.OperationModule) (ToolProvider, error) {
+func HarvestOps(expose []ToolName, modules ...crud.Module) (ToolProvider, error) {
 	reg := &opRegistry{}
 	for _, m := range modules {
 		name := m.ModelName()
@@ -36,7 +37,9 @@ func HarvestOps(expose []ToolName, modules ...router.OperationModule) (ToolProvi
 			return nil, errEmptyModelName
 		}
 		reg.module = name
-		m.MountOperations(reg)
+		if err := crud.Mount(reg, nil, m); err != nil {
+			return nil, err
+		}
 	}
 
 	if reg.err != nil {
