@@ -84,7 +84,7 @@ http.HandleFunc(mcp.MCPPath, func(w http.ResponseWriter, r *http.Request) {
 
 ## Calling tools (Client)
 
-Views should depend on `router.Caller` and use `mcp.NewCaller` to invoke tools. This adapter handles the MCP JSON-RPC envelope, allowing the view to pass logical tool names and receive unwrapped result bytes.
+Views should depend on `router.Caller` and use `mcp.NewCaller` to invoke tools. This adapter handles the MCP JSON-RPC envelope, allowing the view to pass a typed `router.Operation` and receive unwrapped result bytes.
 
 ```go
 import (
@@ -98,12 +98,14 @@ caller := mcp.NewCaller(client)
 
 // 2. View: depend on router.Caller only
 func MyView(c router.Caller) {
-    c.Call("search", &SearchArgs{Query: "mcp"}, func(result []byte, err error) {
+    var out PageList
+    op := router.Operation{Module: "docs", Entity: "page", Action: model.Read} // tool "docs.page.read"
+    c.Call(op, &SearchArgs{Query: "mcp"}, &out, func(err error) {
         if err != nil {
             // handles transport, protocol and tool errors
             return
         }
-        // result contains unwrapped tool content bytes
+        // out holds the decoded tool content
     })
 }
 ```
@@ -166,7 +168,7 @@ MCP is the agents' surface; browsers call operations through `webtyp.com/rpc`; l
 
 | Symbol | Description |
 |--------|-------------|
-| `HarvestOps(expose, modules...)` | Build a `ToolProvider` with only the exposed operations. An op that `RequiresMFA` cannot be exposed. |
+| `HarvestOps(pub, expose, modules...)` | Build a `ToolProvider` with only the exposed operations; a write tool publishes its change on `pub` after the commit (`nil` = nobody listens). An op that `RequiresMFA` cannot be exposed. Each tool is named `<module>.<entity>.<create\|read\|update\|delete>` (`mcp.ToolNameOf(router.Operation{…})`). |
 | `NewServer(config, providers)` | Create MCP server — returns `(*Server, error)` |
 | `NewClient(baseURL, authToken)` | Create MCP client |
 | `NewCaller(client)` | Adapt `*Client` to `router.Caller` (recommended for views) |

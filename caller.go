@@ -14,12 +14,12 @@ type mcpCaller struct {
 
 // NewCaller adapts *Client to the router.Caller contract. It is the single
 // place that knows the tools/call envelope. Consumers (views) depend on
-// router.Caller only and pass logical operation names (tool names).
+// router.Caller only and pass a typed router.Operation.
 func NewCaller(c *Client) router.Caller {
 	return &mcpCaller{client: c}
 }
 
-func (c *mcpCaller) Call(op string, args model.Encodable, into model.Decodable, done func(err error)) {
+func (c *mcpCaller) Call(op router.Operation, args model.Encodable, into model.Decodable, done func(err error)) {
 	argsJSON := "{}"
 	if args != nil {
 		if err := json.Encode(args, &argsJSON); err != nil {
@@ -31,7 +31,7 @@ func (c *mcpCaller) Call(op string, args model.Encodable, into model.Decodable, 
 	}
 
 	params := &CallToolParams{
-		Name:      op,
+		Name:      string(ToolNameOf(op)),
 		Arguments: argsJSON,
 	}
 
@@ -72,14 +72,14 @@ func (c *mcpCaller) Call(op string, args model.Encodable, into model.Decodable, 
 	})
 }
 
-func (c *mcpCaller) Dispatch(op string, args model.Encodable) {
+func (c *mcpCaller) Dispatch(op router.Operation, args model.Encodable) {
 	argsJSON := "{}"
 	if args != nil {
 		json.Encode(args, &argsJSON)
 	}
 
 	params := &CallToolParams{
-		Name:      op,
+		Name:      string(ToolNameOf(op)),
 		Arguments: argsJSON,
 	}
 

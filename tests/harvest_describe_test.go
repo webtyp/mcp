@@ -24,9 +24,13 @@ func (b *businessHours) DecodeFields(d model.FieldReader) { b.ID, _ = d.String("
 
 type businessHoursList []*businessHours
 
-func (s *businessHoursList) Len() int                         { return len(*s) }
-func (s *businessHoursList) At(i int) model.Fielder           { return (*s)[i] }
-func (s *businessHoursList) Append() model.Fielder            { v := &businessHours{}; *s = append(*s, v); return v }
+func (s *businessHoursList) Len() int               { return len(*s) }
+func (s *businessHoursList) At(i int) model.Fielder { return (*s)[i] }
+func (s *businessHoursList) Append() model.Fielder {
+	v := &businessHours{}
+	*s = append(*s, v)
+	return v
+}
 func (s *businessHoursList) IsNil() bool                      { return s == nil }
 func (s *businessHoursList) EncodeFields(_ model.FieldWriter) {}
 func (s *businessHoursList) DecodeFields(_ model.FieldReader) {}
@@ -35,8 +39,11 @@ func (s *businessHoursList) DecodeFields(_ model.FieldReader) {}
 type describedModule struct{}
 
 func (describedModule) ModelName() string { return "business_calendar" }
+func (m describedModule) Definition() model.ModuleDefinition {
+	return readOnlyDefinition(m.ModelName(), &businessHours{})
+}
 func (describedModule) MountOperations(reg crud.Registry) {
-	reg.Read(&businessHours{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+	reg.AddReadOnlyEntity(&businessHours{}, nil, func(c crud.CurrentUser, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
 		out := businessHoursList{}
 		return &out, nil
 	}).Describe("Horario de atención del consultorio para cada día de la semana.")
@@ -45,8 +52,8 @@ func (describedModule) MountOperations(reg crud.Registry) {
 // An AI agent chooses tools by what tools/list says they do: the operation's Describe text
 // is the tool's description.
 func TestHarvestOps_DescribeBecomesToolDescription(t *testing.T) {
-	opRead := crud.Op(&businessHours{}, model.Read)
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("business_calendar", opRead)}, describedModule{})
+	opRead := toolOf("business_calendar", &businessHours{}, model.Read)
+	provider, err := mcp.HarvestOps(nil, []mcp.ToolName{opRead}, describedModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -57,7 +64,7 @@ func TestHarvestOps_DescribeBecomesToolDescription(t *testing.T) {
 	}
 	var ctx context.Context
 	body := encodeResponse(srv.HandleMessage(&ctx, []byte(`{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}`)))
-	want := `"name":"business_calendar.` + opRead + `","description":"Horario de atención del consultorio para cada día de la semana."`
+	want := `"name":"` + string(opRead) + `","description":"Horario de atención del consultorio para cada día de la semana."`
 	if !contains(body, want) {
 		t.Errorf("tools/list lacks the described tool:\n%s", body)
 	}
