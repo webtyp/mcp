@@ -122,3 +122,6 @@ MCP is the agents' surface; browsers call operations through `webtyp.com/rpc`; l
 | `utils.go` | `JSON`, `GetText`, `ParseResult`, response builders |
 | `constants.go` | HTTP header constants, content type constants |
 | `types.go` | MCP method constants, error codes, `JSONRPCMessage` interface |
+
+
+A harvested write tool announces through the publisher.

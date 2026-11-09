@@ -16,9 +16,10 @@ type mfaRecord struct {
 func (r *mfaRecord) ModelName() string { return "mfa_rec" }
 func (r *mfaRecord) IsNil() bool       { return r == nil }
 func (r *mfaRecord) Schema() []model.Field {
-	return []model.Field{{Name: "id", Type: model.Text()}}
+	return []model.Field{{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}}}
 }
 func (r *mfaRecord) Pointers() []any                  { return []any{&r.ID} }
+func (r *mfaRecord) Allow() model.Action { return model.Read | model.Delete }
 func (r *mfaRecord) EncodeFields(w model.FieldWriter) { w.String("id", r.ID) }
 func (r *mfaRecord) DecodeFields(d model.FieldReader) { r.ID, _ = d.String("id") }
 
@@ -35,13 +36,17 @@ func (s *mfaRecordList) DecodeFields(_ model.FieldReader) {}
 type fakeMFAModule struct{}
 
 func (fakeMFAModule) ModelName() string { return "fake_mfa" }
+func (m fakeMFAModule) Definition() model.ModuleDefinition {
+	return model.ModuleDefinition{Name: m.ModelName(), Entities: []model.Definition{{Name: (&mfaRecord{}).ModelName(), Allow: model.Read | model.Delete, Rules: model.Rules{Read: model.HaveNoBusinessRule, Delete: model.AddMyBusinessRule}}}}
+}
 func (fakeMFAModule) MountOperations(reg crud.Registry) {
-	reg.Delete(&mfaRecord{}, func(c crud.Caller, ids []string) error {
-		return nil
-	}).RequiresMFA()
-	reg.Read(&mfaRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
-		out := mfaRecordList{}
-		return &out, nil
+	reg.AddStoredEntity(crud.StoredEntity{
+		Model: &mfaRecord{},
+		Store: &memStore{data: make(map[string]string)},
+		NewList: func() model.ModelSlice { return &mfaRecordList{} },
+		Rules: model.Rules{Read: model.HaveNoBusinessRule, Delete: model.AddMyBusinessRule},
+		MFA: model.Delete,
+		Delete: func(c crud.CurrentUser, tx crud.Tx, rec model.Model) (crud.RuleAnswer, error) { return crud.ApplyAndPublish, nil },
 	})
 }
 
@@ -50,8 +55,8 @@ var _ crud.Module = fakeMFAModule{}
 // M1: a module whose MountOperations registers delete with RequiresMFA;
 // HarvestOps([]ToolName{"<module>.<entity>_d"}, m) returns an error containing `requires MFA`
 func TestHarvestOps_ExposeMFAError(t *testing.T) {
-	opDelete := crud.Op(&mfaRecord{}, model.Delete)
-	_, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_mfa", opDelete)}, fakeMFAModule{})
+
+	_, err := mcp.HarvestOps(nil, []mcp.ToolName{toolOf("fake_mfa", &mfaRecord{}, model.Delete)}, fakeMFAModule{})
 	if err == nil {
 		t.Fatal("expected error when exposing an MFA operation, got nil")
 	}
@@ -62,8 +67,8 @@ func TestHarvestOps_ExposeMFAError(t *testing.T) {
 
 // M2: same module plus read without MFA; exposing only read succeeds and Tools() has exactly one tool
 func TestHarvestOps_ExposeListOnly(t *testing.T) {
-	opRead := crud.Op(&mfaRecord{}, model.Read)
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_mfa", opRead)}, fakeMFAModule{})
+
+	provider, err := mcp.HarvestOps(nil, []mcp.ToolName{toolOf("fake_mfa", &mfaRecord{}, model.Read)}, fakeMFAModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -71,7 +76,7 @@ func TestHarvestOps_ExposeListOnly(t *testing.T) {
 	if len(tools) != 1 {
 		t.Fatalf("expected 1 tool, got %d", len(tools))
 	}
-	want := "fake_mfa." + opRead
+	want := string(toolOf("fake_mfa", &mfaRecord{}, model.Read))
 	if tools[0].Name != want {
 		t.Errorf("expected tool name %q, got %s", want, tools[0].Name)
 	}
@@ -79,15 +84,15 @@ func TestHarvestOps_ExposeListOnly(t *testing.T) {
 
 // M3: exposing only read while delete (MFA) is registered: no error, delete absent from Tools()
 func TestHarvestOps_MFAOpNotInExposeSilent(t *testing.T) {
-	opRead := crud.Op(&mfaRecord{}, model.Read)
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake_mfa", opRead)}, fakeMFAModule{})
+
+	provider, err := mcp.HarvestOps(nil, []mcp.ToolName{toolOf("fake_mfa", &mfaRecord{}, model.Read)}, fakeMFAModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
 	tools := provider.Tools()
-	opDelete := crud.Op(&mfaRecord{}, model.Delete)
+
 	for _, tool := range tools {
-		if tool.Name == "fake_mfa."+opDelete {
+		if tool.Name == string(toolOf("fake_mfa", &mfaRecord{}, model.Delete)) {
 			t.Fatalf("delete (MFA) tool should not be exposed")
 		}
 	}

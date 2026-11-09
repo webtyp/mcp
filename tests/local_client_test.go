@@ -5,16 +5,16 @@ import (
 	"testing"
 
 	"webtyp.com/context"
-	"webtyp.com/crud"
-	"webtyp.com/mcp"
+		"webtyp.com/mcp"
 	"webtyp.com/model"
+	"webtyp.com/router"
 )
 
 // A local client is the HTTP client without the network: the same requests reach the same
 // server and come back the same way, so a router.Caller over it decodes ops exactly as over HTTP.
 func TestLocalClient_SameAnswersAsHTTP(t *testing.T) {
-	opRead := crud.Op(&fakeRecord{}, model.Read)
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", opRead)}, fakeModule{})
+
+	provider, err := mcp.HarvestOps(nil, []mcp.ToolName{toolOf("fake", &fakeRecord{}, model.Read)}, fakeModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -32,14 +32,14 @@ func TestLocalClient_SameAnswersAsHTTP(t *testing.T) {
 		}
 		list = body
 	})
-	wantTool := "fake." + opRead
+	wantTool := string(toolOf("fake", &fakeRecord{}, model.Read))
 	if !strings.Contains(string(list), wantTool) {
 		t.Fatalf("tools/list = %s, want %s", list, wantTool)
 	}
 
 	var out fakeRecordList
 	done := make(chan error, 1)
-	mcp.NewCaller(client).Call(wantTool, nil, &out, func(err error) { done <- err })
+	mcp.NewCaller(client).Call(router.Operation{Module: "fake", Entity: "fake_rec", Action: model.Read}, nil, &out, func(err error) { done <- err })
 	if err := <-done; err != nil {
 		t.Fatalf("caller.Call: %v", err)
 	}

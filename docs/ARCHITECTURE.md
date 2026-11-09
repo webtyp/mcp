@@ -187,3 +187,6 @@ public and authenticated tools, which carry no `Action`: closed by default, so a
 before running a tool nobody declared harmless.
 
 MCP is the agents' surface; browsers call operations through `webtyp.com/rpc`; list in the app's `config/mcp.go` exactly what an agent may call.
+
+
+A harvested write tool announces through the publisher.

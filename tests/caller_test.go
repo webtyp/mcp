@@ -9,6 +9,7 @@ import (
 	"webtyp.com/json"
 	"webtyp.com/mcp"
 	"webtyp.com/model"
+	"webtyp.com/router"
 	"webtyp.com/time"
 )
 
@@ -42,7 +43,7 @@ func (m *mockEncodable) IsNil() bool {
 func TestCaller_Call_Success(t *testing.T) {
 	srv, _ := mcp.NewServer(mcp.Config{Name: "test", Version: "1.0.0", Authorize: mcp.AllowAll}, nil)
 	srv.AddTool(mcp.Tool{
-		Name:     "echo",
+		Name:     string(toolOf("test", &fakeRecord{}, model.Read)),
 		Resource: "test",
 		Action:   model.Read,
 		Execute: func(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
@@ -74,7 +75,7 @@ func TestCaller_Call_Success(t *testing.T) {
 	args := &mockEncodable{Foo: "bar"}
 	done := make(chan bool)
 	var result mcp.TextContentList
-	caller.Call("echo", args, &result, func(err error) {
+	caller.Call(router.Operation{Module: "test", Entity: "fake_rec", Action: model.Read}, args, &result, func(err error) {
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
@@ -93,7 +94,7 @@ func TestCaller_Call_Success(t *testing.T) {
 func TestCaller_Call_ToolError(t *testing.T) {
 	srv, _ := mcp.NewServer(mcp.Config{Name: "test", Version: "1.0.0", Authorize: mcp.AllowAll}, nil)
 	srv.AddTool(mcp.Tool{
-		Name:     "fail",
+		Name:     string(toolOf("fail", &fakeRecord{}, model.Read)),
 		Resource: "test",
 		Action:   model.Read,
 		Execute: func(ctx *context.Context, req mcp.Request) (*mcp.Result, error) {
@@ -120,7 +121,7 @@ func TestCaller_Call_ToolError(t *testing.T) {
 	caller := mcp.NewCaller(client)
 
 	done := make(chan bool)
-	caller.Call("fail", nil, nil, func(err error) {
+	caller.Call(router.Operation{Module: "fail", Entity: "fake_rec", Action: model.Read}, nil, nil, func(err error) {
 		if err == nil {
 			t.Error("expected error, got nil")
 		} else if !contains(err.Error(), "something went wrong") {
@@ -142,7 +143,7 @@ func TestCaller_Call_RPCError(t *testing.T) {
 	caller := mcp.NewCaller(client)
 
 	done := make(chan bool)
-	caller.Call("any", nil, nil, func(err error) {
+	caller.Call(router.Operation{Module: "any", Entity: "any_rec", Action: model.Read}, nil, nil, func(err error) {
 		if err == nil {
 			t.Error("expected error, got nil")
 		} else if !contains(err.Error(), "Method not found") {
@@ -164,7 +165,7 @@ func TestCaller_Dispatch(t *testing.T) {
 	client := mcp.NewClient(ts.URL, "")
 	caller := mcp.NewCaller(client)
 
-	caller.Dispatch("any", nil)
+	caller.Dispatch(router.Operation{Module: "any", Entity: "any_rec", Action: model.Read}, nil)
 
 	finished := make(chan bool)
 	time.AfterFunc(1000, func() {
