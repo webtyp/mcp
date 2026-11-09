@@ -2,6 +2,8 @@
 PLAN: "refactor!: tools are named by router.Operation (<module>.<entity>.<verb>); HarvestOps takes the publisher crud announces on"
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 3579005027112802276
 ---
 
 > Read AGENTS.md at the repo root before any change.
