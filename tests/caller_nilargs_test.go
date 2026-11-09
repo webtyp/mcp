@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"webtyp.com/context"
-	"webtyp.com/crud"
 	"webtyp.com/json"
 	"webtyp.com/mcp"
 	"webtyp.com/model"
+	"webtyp.com/router"
 )
 
 // TestCaller_Call_NilArgsAgainstOpThatDecodes reproduces the bug found while
@@ -44,8 +44,8 @@ import (
 // "{}" (a valid empty JSON object), never as the empty Go string "" — see
 // docs/PLAN.md.
 func TestCaller_Call_NilArgsAgainstOpThatDecodes(t *testing.T) {
-	opRead := crud.Op(&fakeRecord{}, model.Read)
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("fake", opRead)}, fakeModule{})
+	opRead := toolOf("fake", &fakeRecord{}, model.Read)
+	provider, err := mcp.HarvestOps(nil, []mcp.ToolName{opRead}, fakeModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestCaller_Call_NilArgsAgainstOpThatDecodes(t *testing.T) {
 
 	done := make(chan error, 1)
 	var out fakeRecordList
-	caller.Call("fake."+opRead, nil, &out, func(err error) {
+	caller.Call(router.Operation{Module: "fake", Entity: "fake_rec", Action: model.Read}, nil, &out, func(err error) {
 		done <- err
 	})
 

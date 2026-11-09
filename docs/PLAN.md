@@ -2,8 +2,10 @@
 PLAN: "refactor!: tools are named by router.Operation (<module>.<entity>.<verb>); HarvestOps takes the publisher crud announces on"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 12573897695017596981
+PR: https://github.com/webtyp/mcp/pull/33
+REVIEWED_COMMIT: 6f822cfb1fbc061c21fb8e9f8a4f62f52f4518f2
 ---
 
 > Read AGENTS.md at the repo root before any change.

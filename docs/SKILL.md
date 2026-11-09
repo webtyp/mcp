@@ -51,8 +51,9 @@ mcp.AllowAll               // helper: always returns true (dev/tests)
 // Client (WASM-safe, uses webtyp/fetch)
 c := mcp.NewClient("http://host", "")   // authToken: "" = open/unauthenticated
 caller := mcp.NewCaller(c) // recommended adapter for views (implements router.Caller)
-caller.Call("search", &args, func(data []byte, err error){})
-caller.Dispatch("search", &args)
+op := router.Operation{Module: "docs", Entity: "page", Action: model.Read} // tool "docs.page.read"
+caller.Call(op, &args, &out, func(err error){})
+caller.Dispatch(op, &args)
 
 // Context keys
 mcp.CtxKeyUserID      // set before HandleMessage: identity resolved by host
@@ -109,7 +110,7 @@ MCP is the agents' surface; browsers call operations through `webtyp.com/rpc`; l
 
 | File | Role |
 |------|------|
-| `harvest.go` | `HarvestOps(expose, modules...)` — builds a `ToolProvider` from `crud.Module`s with ONLY the operations named in expose |
+| `harvest.go` | `HarvestOps(pub, expose, modules...)` — builds a `ToolProvider` from `crud.Module`s with ONLY the operations named in expose; a write tool announces through `pub` after the commit. Tool names are `<module>.<entity>.<create|read|update|delete>` (`ToolNameOf(router.Operation{…})`) |
 | `server.go` | `Server`, `NewServer`, handlers (init/ping/list/call) |
 | `request_handler.go` | `HandleMessage` dispatch, JSON extraction, context keys |
 | `mcp_auth.go` | `Authorize` type + `AllowAll` helper |

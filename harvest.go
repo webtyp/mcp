@@ -3,19 +3,21 @@ package mcp
 import (
 	"webtyp.com/context"
 	"webtyp.com/crud"
+	"webtyp.com/events"
 	"webtyp.com/fmt"
 	"webtyp.com/json"
 	"webtyp.com/model"
 	"webtyp.com/router"
 )
 
-// ToolName is a qualified tool name: "<ModelName>.<operation>".
+// ToolName is the qualified name of one tool: "<module>.<entity>.<verb>", the text of its router.Operation.
 type ToolName string
 
-// ToolNameOf builds the qualified name of one operation, from the module's constants:
-// mcp.ToolNameOf(booking.ModelName, crud.Op(&booking.Reservation{}, model.Read)).
-func ToolNameOf(module, op string) ToolName {
-	return ToolName(module + "." + op)
+// ToolNameOf is the tool name of one operation.
+//
+//	mcp.ToolNameOf(router.Operation{Module: "booking", Entity: "reservation", Action: model.Read}) // "booking.reservation.read"
+func ToolNameOf(op router.Operation) ToolName {
+	return ToolName(op.String())
 }
 
 type harvestError string
@@ -25,19 +27,17 @@ func (e harvestError) Error() string { return string(e) }
 const errEmptyModelName = harvestError("mcp: module with empty ModelName()")
 
 // HarvestOps runs each module's MountOperations and returns a ToolProvider with ONLY the
-// operations named in expose. An empty expose exposes nothing (closed by default).
+// operations named in expose. pub receives the events a write tool publishes after its commit; nil means nobody listens. An empty expose exposes nothing (closed by default).
 // Errors (nothing is returned): a module with an empty ModelName(), the same qualified name
 // registered twice, a name repeated in expose, or a name in expose that no module registered
 // (a typo must fail at startup, not silently hide a tool).
-func HarvestOps(expose []ToolName, modules ...crud.Module) (ToolProvider, error) {
+func HarvestOps(pub events.Publisher, expose []ToolName, modules ...crud.Module) (ToolProvider, error) {
 	reg := &opRegistry{}
 	for _, m := range modules {
-		name := m.ModelName()
-		if name == "" {
+		if m.ModelName() == "" {
 			return nil, errEmptyModelName
 		}
-		reg.module = name
-		if err := crud.Mount(reg, nil, m); err != nil {
+		if err := crud.Mount(reg, nil, pub, m); err != nil {
 			return nil, err
 		}
 	}
@@ -91,15 +91,11 @@ func (s staticProvider) Tools() []Tool { return []Tool(s) }
 type opRegistry struct {
 	tools []Tool
 	mfa   []bool
-	// module is the ModelName() of whichever module HarvestOps is currently
-	// mounting — set once per module, before that module's MountOperations
-	// runs, and is what qualifies every name Operation registers.
-	module string
-	err    error
+	err   error
 }
 
-func (r *opRegistry) Operation(name string, h router.HandlerFunc) router.Route {
-	qualified := r.module + "." + name
+func (r *opRegistry) Operation(op router.Operation, h router.HandlerFunc) router.Route {
+	qualified := string(ToolNameOf(op))
 	for _, t := range r.tools {
 		if t.Name == qualified {
 			r.err = harvestError("mcp: duplicate tool name " + qualified)

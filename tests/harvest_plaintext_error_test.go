@@ -11,6 +11,7 @@ import (
 	"webtyp.com/json"
 	"webtyp.com/mcp"
 	"webtyp.com/model"
+	"webtyp.com/router"
 )
 
 type failRecord struct {
@@ -38,8 +39,11 @@ func (s *failRecordList) DecodeFields(_ model.FieldReader) {}
 type plainTextErrorModule struct{}
 
 func (plainTextErrorModule) ModelName() string { return "plaintext" }
+func (m plainTextErrorModule) Definition() model.ModuleDefinition {
+	return readOnlyDefinition(m.ModelName(), &failRecord{})
+}
 func (plainTextErrorModule) MountOperations(reg crud.Registry) {
-	reg.Read(&failRecord{}, nil, func(c crud.Caller, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+	reg.AddReadOnlyEntity(&failRecord{}, nil, func(c crud.CurrentUser, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
 		return nil, model.NotFound("patient not found")
 	})
 }
@@ -47,8 +51,8 @@ func (plainTextErrorModule) MountOperations(reg crud.Registry) {
 var _ crud.Module = plainTextErrorModule{}
 
 func TestHarvestOps_PlainTextErrorSurvivesRealWireRoundTrip(t *testing.T) {
-	opRead := crud.Op(&failRecord{}, model.Read)
-	provider, err := mcp.HarvestOps([]mcp.ToolName{mcp.ToolNameOf("plaintext", opRead)}, plainTextErrorModule{})
+	opRead := toolOf("plaintext", &failRecord{}, model.Read)
+	provider, err := mcp.HarvestOps(nil, []mcp.ToolName{opRead}, plainTextErrorModule{})
 	if err != nil {
 		t.Fatalf("HarvestOps: %v", err)
 	}
@@ -75,7 +79,7 @@ func TestHarvestOps_PlainTextErrorSurvivesRealWireRoundTrip(t *testing.T) {
 	caller := mcp.NewCaller(mcp.NewClient(ts.URL, ""))
 
 	done := make(chan error, 1)
-	caller.Call("plaintext."+opRead, nil, nil, func(err error) { done <- err })
+	caller.Call(router.Operation{Module: "plaintext", Entity: "fail_rec", Action: model.Read}, nil, nil, func(err error) { done <- err })
 	err = <-done
 
 	if err == nil {
