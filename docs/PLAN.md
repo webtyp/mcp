@@ -2,8 +2,6 @@
 PLAN: "refactor!: tools are named by router.Operation (<module>.<entity>.<verb>); HarvestOps takes the publisher crud announces on"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
-SESSION: 3579005027112802276
 ---
 
 > Read AGENTS.md at the repo root before any change.
@@ -51,6 +49,38 @@ Dependencies (all published, no `replace`): `go get webtyp.com/model@v0.2.18 web
 | `events.Publisher` | `Publish(e Event)` | `events/events.go:43` |
 
 If a signature differs from this table, stop and name the symbol in the PR; never adapt it by guessing.
+
+## Test fixtures against `crud` v0.0.8 (a module fixture that implements `crud.Module` or `crud.Registry`)
+
+`crud` v0.0.8 changed the shapes below; every fixture and fake in this repo's tests follows them. The reference is `crud`'s own `tests/stored_entity_test.go` (`testModule`, `declareRules`): it is in the module cache at `webtyp.com/crud@v0.0.8/tests/` (`go list -m -f '{{.Dir}}' webtyp.com/crud`).
+
+| Old | New (`crud` v0.0.8) |
+|---|---|
+| `crud.Caller` (hook and read arguments) | `crud.CurrentUser` (same field `UserID`) |
+| `reg.Read(&Rec{}, nil, func(c crud.Caller, args crud.ReadArgs, f model.Model) (model.ModelSlice, error) {…})` | `reg.AddReadOnlyEntity(&Rec{}, nil, func(c crud.CurrentUser, args crud.ReadArgs, f model.Model) (model.ModelSlice, error) {…})` (same parameters, new name) |
+| `reg.Table(crud.Table{…})` | `reg.AddStoredEntity(crud.StoredEntity{…})`; its hooks return `(crud.RuleAnswer, error)`: `return crud.ApplyAndPublish, nil` (an error: `return 0, err`); `Rules: model.Rules{…}` is required (`HaveNoBusinessRule` where a hook is nil, `AddMyBusinessRule` where it is set) |
+| a `crud.Module` has `ModelName()` and `MountOperations(reg crud.Registry)` | it also has `Definition() model.ModuleDefinition`, listing **exactly** the entities it mounts, or `crud.Mount` refuses it (`ErrGeneratedOutOfDate`) |
+| `crud.Op(&Rec{}, model.Read)` (a string) | `router.Operation{Module: "<ModelName()>", Entity: "<entity ModelName()>", Action: model.Read}` |
+| `crud.Mount(reg, public, m)` | `crud.Mount(reg, public, nil, m)` (the new third argument is the `events.Publisher`; `nil` = nobody listens) |
+| `crud.Loopback(m...)`, `crud.LoopbackActingAs(id, m...)` | `crud.Loopback(nil, m...)`, `crud.LoopbackActingAs(nil, id, m...)` |
+
+`Definition()` for the two usual fixtures:
+
+```go
+// a read-only entity mounted with AddReadOnlyEntity (a Wire model, no table)
+func (m myModule) Definition() model.ModuleDefinition {
+	return model.ModuleDefinition{Name: m.ModelName(), Entities: []model.Definition{{
+		Name: (&Rec{}).ModelName(), Wire: true, Allow: model.Read, Rules: model.Rules{Read: model.AddMyBusinessRule}}}}
+}
+
+// a stored entity mounted with AddStoredEntity: copy what the entity says about itself
+func (m myModule) Definition() model.ModuleDefinition {
+	return model.ModuleDefinition{Name: m.ModelName(), Entities: []model.Definition{{
+		Name: m.entity.Model.ModelName(), Allow: m.entity.Model.(model.Allower).Allow(), Rules: m.entity.Rules}}}
+}
+```
+
+There is no `model.BaseData` and no `crud.Table`/`crud.Op` any more: if a name is not in `crud` v0.0.8, `go doc webtyp.com/crud` lists what is.
 
 ## Stage 1 — tests first (red)
 
