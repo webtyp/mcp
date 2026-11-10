@@ -25,7 +25,7 @@ require (
 
 require (
 	webtyp.com/calendar v0.1.0 // indirect
-	webtyp.com/crud v0.0.9
+	webtyp.com/crud v0.0.10
 	webtyp.com/escape v0.1.0 // indirect
 	webtyp.com/filepath v0.1.0 // indirect
 )
