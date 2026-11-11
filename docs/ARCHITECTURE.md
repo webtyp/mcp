@@ -2,6 +2,8 @@
 
 ## Purpose
 
+A tool call has no URL, `Path()` and `RawQuery()` are empty.
+
 Lean Go implementation of MCP (Model Context Protocol) over JSON-RPC 2.0. Protocol-only, WASM-safe, no HTTP ownership. The consumer owns HTTP routing and injects optional SSE streaming.
 
 ## Design Principles

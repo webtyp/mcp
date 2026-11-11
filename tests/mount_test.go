@@ -21,6 +21,7 @@ type mockContext struct {
 	userID      string
 }
 
+func (m *mockContext) RawQuery() string { return "" }
 func (m *mockContext) Body() []byte { return m.body }
 func (m *mockContext) GetHeader(key string) string {
 	if m.headers == nil {
