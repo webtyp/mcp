@@ -160,6 +160,8 @@ type opContext struct {
 	status    int
 }
 
+var _ router.Context = (*opContext)(nil)
+
 func (c *opContext) Method() string                      { return "POST" }
 // RawQuery is empty: a tool call has no URL, its arguments are the body.
 func (c *opContext) RawQuery() string { return "" }

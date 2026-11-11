@@ -8,8 +8,8 @@ require (
 	webtyp.com/fetch v0.1.30
 	webtyp.com/fmt v1.0.0
 	webtyp.com/json v0.5.40
-	webtyp.com/model v0.2.19
-	webtyp.com/router v0.4.21
+	webtyp.com/model v0.2.20
+	webtyp.com/router v0.5.0
 	webtyp.com/unixid v0.3.1
 )
 
@@ -25,7 +25,7 @@ require (
 
 require (
 	webtyp.com/calendar v0.1.0 // indirect
-	webtyp.com/crud v0.0.11
+	webtyp.com/crud v0.0.15
 	webtyp.com/escape v0.1.0 // indirect
 	webtyp.com/filepath v0.1.0 // indirect
 )
