@@ -2,8 +2,10 @@
 PLAN: "feat!: mcp opContext.RawQuery() (router v0.5.0)"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 1119294109852467709
+PR: https://github.com/webtyp/mcp/pull/34
+REVIEWED_COMMIT: 1cc165d5d86885d44b7ae4fe2c2ef204342a3408
 ---
 
 > Read AGENTS.md at the repo root before any change.
@@ -51,11 +53,9 @@ Then run `go vet ./...` at the root and in `tests/` (nested module if `tests/go.
 
 ## Stage 2 — tests and docs
 
-| Test | setup → call → expected |
-|---|---|
-| `TestOpContext_HasNoURL` (`tests/mount_test.go`) | a tool registered through the mount whose handler writes `ctx.Path() + "|" + ctx.RawQuery()`, called with empty arguments → the answer is `|` |
+`opContext` is built inside `HarvestOps`'s closure, so no external test can reach it without a full `crud.Module`: its proof is the compiler. Check that `harvest.go` has `var _ router.Context = (*opContext)(nil)` (add it next to the type if missing). **No new test and no new row in `docs/TESTS.md`.**
 
-Add its row to `docs/TESTS.md`. One sentence in `docs/ARCHITECTURE.md`: a tool call has no URL, `Path()` and `RawQuery()` are empty.
+One sentence in `docs/ARCHITECTURE.md`: a tool call has no URL, `Path()` and `RawQuery()` are empty.
 
 ## Delivery check
 
