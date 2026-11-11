@@ -20,7 +20,7 @@ require (
 
 require (
 	webtyp.com/definitioncheck v0.0.3 // indirect
-	webtyp.com/storage v0.2.1 // indirect
+	webtyp.com/storage v0.2.3 // indirect
 )
 
 require (
