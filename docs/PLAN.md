@@ -2,6 +2,8 @@
 PLAN: "feat!: mcp opContext.RawQuery() (router v0.5.0)"
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 1119294109852467709
 ---
 
 > Read AGENTS.md at the repo root before any change.
