@@ -27,7 +27,7 @@ require (
 	webtyp.com/calendar v0.1.0 // indirect
 	webtyp.com/crud v0.0.15
 	webtyp.com/escape v0.1.0 // indirect
-	webtyp.com/filepath v0.1.0 // indirect
+	webtyp.com/filepath v0.1.3 // indirect
 )
 
 // Local dev: Encode/Decode (standard, padded base64) were just added and
